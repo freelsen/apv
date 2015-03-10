@@ -614,8 +614,18 @@ public class PagesView extends View implements
 				doAction(actions.getAction(KeyEvent.KEYCODE_DPAD_RIGHT));
 				//doAction(Actions.ACTION_SCREEN_DOWN);
 				return true;
-			case 92:
-			case 93:
+			case 92://140222, pageup;
+				doAction(Actions.ACTION_FULL_PAGE_UP);
+				return true;
+			case 93:// pagedown;
+				doAction(Actions.ACTION_FULL_PAGE_DOWN);
+				return true;
+			case 122:// home;
+				this.action_home();
+				return true;
+			case 123:// end;
+				this.action_end();
+				return true;
 			case 94:
 			case 95:
 				doAction(action);
@@ -813,6 +823,12 @@ public class PagesView extends View implements
 
 //------2013-07-24--------------------------------------------------
 	//=== @2013-07-24, action operation; ===
+	public void action_home() {
+		this.scrollToPage(0);
+	}
+	public void action_end() {
+		this.scrollToPage(this.getPageCount());
+	}
 	public boolean doAction(int action) {
 		float zoomValue = Actions.getZoomValue(action);
 		if (0f < zoomValue) {
@@ -821,10 +837,12 @@ public class PagesView extends View implements
 		}
 		switch(action) {
 		case Actions.ACTION_FULL_PAGE_DOWN:
-			scrollToPage(currentPage + 1, false);
+			//140222,scrollToPage(currentPage + 1, false);
+			action_page( true );
 			return true;
 		case Actions.ACTION_FULL_PAGE_UP:
-			scrollToPage(currentPage - 1, false);
+			//scrollToPage(currentPage - 1, false);
+			action_page(false);
 			return true;
 		case Actions.ACTION_PREV_PAGE:
 			scrollToPage(currentPage - 1, true);

@@ -80,6 +80,7 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
 	
 	private PDF pdf = null;
 	private PagesView pagesView = null;
+	
 // #ifdef pro
 	
 	/**
@@ -218,6 +219,13 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
 	 */
 	private boolean textReflowMode = false;
 // #endif
+	
+	// +ls: 140302;
+	private LsMenu mlsmenu = new LsMenu();
+	
+	public LsMenu getLsmenu() {
+		return mlsmenu;
+	}
 
 	/**
      * Called when the activity is first created.
@@ -1832,21 +1840,27 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
     public boolean onCreateOptionsMenu(Menu menu) {
     	super.onCreateOptionsMenu(menu);
     	
+    	//+ls: 140302;
+    	mlsmenu.Add2Menu(menu); //
+    	// #ifdef pro
+    	//mls: 140302;
+    	this.tableOfContentsMenuItem = menu.add(R.string.table_of_contents);
+    	// #endif
+    	this.optionsMenuItem = menu.add(R.string.options);
     	this.gotoPageMenuItem = menu.add(R.string.goto_page);
-    	this.rotateRightMenuItem = menu.add(R.string.rotate_page_left);
-    	this.rotateLeftMenuItem = menu.add(R.string.rotate_page_right);
+		this.findTextMenuItem = menu.add(R.string.find_text);
     	this.clearFindTextMenuItem = menu.add(R.string.clear_find_text);
     	this.chooseFileMenuItem = menu.add(R.string.choose_file);
-    	this.optionsMenuItem = menu.add(R.string.options);
     	/* The following appear on the second page.  The find item can safely be kept
     	 * there since it can also be accessed from the search key on most devices.
     	 */
     	
     	// #ifdef pro
-    	this.tableOfContentsMenuItem = menu.add(R.string.table_of_contents);
+//mls:140302;    	this.tableOfContentsMenuItem = menu.add(R.string.table_of_contents);
     	this.textReflowMenuItem = menu.add(R.string.text_reflow);
     	// #endif
-		this.findTextMenuItem = menu.add(R.string.find_text);
+    	this.rotateRightMenuItem = menu.add(R.string.rotate_page_left);
+    	this.rotateLeftMenuItem = menu.add(R.string.rotate_page_right);
     	this.aboutMenuItem = menu.add(R.string.about);
     	return true;
     }
@@ -1871,7 +1885,13 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
 			intent.setClass(this, AboutPDFViewActivity.class);
 			this.startActivity(intent);
     		return true;
-    	} else if (menuItem == this.gotoPageMenuItem) {
+    	} 
+    	// +ls: 140302;
+    	else if( this.mlsmenu.isLsbarMenu(menuItem) ){
+    		this.ls_onShowHideZoom();
+    	}
+    	
+    	else if (menuItem == this.gotoPageMenuItem) {
     		this.showGotoPageDialog();
     	} else if (menuItem == this.rotateLeftMenuItem) {
     		this.pagesView.rotate(-1);

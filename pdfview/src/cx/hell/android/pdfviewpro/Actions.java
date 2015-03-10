@@ -6,7 +6,7 @@ import android.view.KeyEvent;
 public class Actions {
 	public int zoom;
 	public int longZoom;
-	public int upDown;
+	private int upDown;
 	public int volume;
 	public int leftRight;
 	public int rightUpDown;
@@ -44,7 +44,8 @@ public class Actions {
 		this.longZoom = Integer.parseInt(pref.getString(Options.PREF_LONG_ZOOM_PAIR, ""+Options.PAIR_ZOOM_2000));
 		this.upDown = Integer.parseInt(pref.getString(Options.PREF_UP_DOWN_PAIR, ""+Options.PAIR_SCREEN));
 		this.volume = Integer.parseInt(pref.getString(Options.PREF_VOLUME_PAIR, ""+Options.PAIR_SCREEN));
-		this.leftRight = Integer.parseInt(pref.getString(Options.PREF_UP_DOWN_PAIR, ""+Options.PAIR_PAGE));
+		//this.leftRight = Integer.parseInt(pref.getString(Options.PREF_UP_DOWN_PAIR, ""+Options.PAIR_PAGE));
+		this.leftRight = Integer.parseInt(pref.getString(Options.PREF_LEFT_RIGHT_PAIR, ""+Options.PAIR_PAGE));
 		this.rightUpDown = Integer.parseInt(pref.getString(Options.PREF_RIGHT_UP_DOWN_PAIR, ""+Options.PAIR_SCREEN));
 		this.topBottomTap = Integer.parseInt(pref.getString(Options.PREF_TOP_BOTTOM_TAP_PAIR, ""+Options.PAIR_NONE));
 	}
@@ -133,10 +134,10 @@ public class Actions {
 			return getAction(this.volume, 0);
 		case KeyEvent.KEYCODE_VOLUME_DOWN:
 			return getAction(this.volume, 1);
-		case 92:
+		//case 92:
 		case KeyEvent.KEYCODE_DPAD_UP:
 			return getAction(this.upDown, 0);
-		case 93:
+		//case 93:
 		case KeyEvent.KEYCODE_DPAD_DOWN:
 			return getAction(this.upDown, 1);
 		case KeyEvent.KEYCODE_DPAD_LEFT:
