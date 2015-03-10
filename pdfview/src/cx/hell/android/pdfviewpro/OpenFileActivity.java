@@ -1061,30 +1061,7 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
         zoomLayout = new LinearLayout(this);
         zoomLayout.setOrientation(LinearLayout.HORIZONTAL);
 
-// +ls, 2013-02-04;        
-		
-		btn_zoom_f = new Button(this);
-		btn_zoom_e = new Button(this);
-		btn_zoom_t = new Button( this);
-		
-		btn_zoom_f.setText("|<");
-		btn_zoom_e.setText(">|");
-		btn_zoom_t.setText("^_^");
-		
-        btn_zoom_p1 = new Button(this);
-		btn_zoom_p2 = new Button(this);
-		btn_zoom_p3 = new Button(this);
-		btn_zoom_p4 = new Button(this);		
-		btn_zoom_p5 = new Button(this);
-		btn_zoom_p6 = new Button(this);
-			
-		btn_zoom_p1.setText("1");
-		btn_zoom_p2.setText("2");
-		btn_zoom_p3.setText("5");
-		btn_zoom_p4.setText("10");
-		btn_zoom_p5.setText("20");
-		btn_zoom_p6.setText("50");		
-		
+// +ls, 2013-02-04;        	
         //btn_zoom_p1.setImageDrawable(getResources().getDrawable(zoomWidthId[mode]));
         //btn_zoom_p1.setBackgroundColor(Color.TRANSPARENT);
 		//btn_zoom_p2.setImageDrawable(getResources().getDrawable(zoomWidthId[mode]));
@@ -1101,20 +1078,6 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
 		//    btn1.setText(¡±this is a button¡±);
 		//09
 		 //   btn1.setId(1);
-
-		btn_zoom_n1 = new Button(this);//ImageButton(this);
-		btn_zoom_n2 = new Button(this);
-		btn_zoom_n3 = new Button(this);
-		btn_zoom_n4 = new Button(this);
-		btn_zoom_n5 = new Button(this);
-		btn_zoom_n6 = new Button(this);
-		
-		btn_zoom_n1.setText("-");
-		btn_zoom_n2.setText("-");
-		btn_zoom_n3.setText("-");
-		btn_zoom_n4.setText("-");
-		btn_zoom_n5.setText("-");
-		btn_zoom_n6.setText("-");
 
 		
 		//btn_zoom_n1.setImageDrawable(getResources().getDrawable(zoomWidthId[mode]));
@@ -1142,7 +1105,49 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
 		zoomLayout.addView(btn_zoom_f);
 		zoomLayout.addView(btn_zoom_e);
 */
-		zoomLayout.addView(btn_zoom_t, (int)(55 * metrics.density), (int)(50 * metrics.density));
+        
+		btn_zoom_f = new Button(this);
+		btn_zoom_e = new Button(this);
+		btn_zoom_t = new Button( this);		
+        btn_zoom_p1 = new Button(this);
+		btn_zoom_p2 = new Button(this);
+		btn_zoom_p3 = new Button(this);
+		btn_zoom_p4 = new Button(this);		
+		btn_zoom_p5 = new Button(this);
+		btn_zoom_p6 = new Button(this);
+
+		btn_zoom_n1 = new Button(this);//ImageButton(this);
+		btn_zoom_n2 = new Button(this);
+		btn_zoom_n3 = new Button(this);
+		btn_zoom_n4 = new Button(this);
+		btn_zoom_n5 = new Button(this);
+		btn_zoom_n6 = new Button(this);
+
+        zoomDownButton = new Button(this);
+		zoomWidthButton = new Button(this);
+		zoomUpButton = new Button(this);
+
+		btn_zoom_n1.setText("<");	btn_zoom_n1.setTextColor(Color.BLUE);
+		btn_zoom_n2.setText("<");	btn_zoom_n2.setTextColor(Color.BLUE);
+		btn_zoom_n3.setText("<");	btn_zoom_n3.setTextColor(Color.BLUE);
+		btn_zoom_n4.setText("<");	btn_zoom_n4.setTextColor(Color.BLUE);
+		btn_zoom_n5.setText("<");	btn_zoom_n5.setTextColor(Color.BLUE);
+		btn_zoom_n6.setText("<");	btn_zoom_n6.setTextColor(Color.BLUE);
+		btn_zoom_p1.setText("1");	btn_zoom_p1.setTextColor(Color.BLUE);
+		btn_zoom_p2.setText("2");	btn_zoom_p2.setTextColor(Color.BLUE);
+		btn_zoom_p3.setText("5");	btn_zoom_p3.setTextColor(Color.BLUE);
+		btn_zoom_p4.setText("10");	btn_zoom_p4.setTextColor(Color.BLUE);
+		btn_zoom_p5.setText("20");	btn_zoom_p5.setTextColor(Color.BLUE);
+		btn_zoom_p6.setText("50");	btn_zoom_p6.setTextColor(Color.BLUE);
+		btn_zoom_f.setText("|<");	btn_zoom_f.setTextColor(Color.BLUE);
+		btn_zoom_e.setText(">|");	btn_zoom_e.setTextColor(Color.BLUE);
+		btn_zoom_t.setText("^_^");	btn_zoom_t.setTextColor(Color.BLUE);
+		
+		zoomDownButton.setText("[-");zoomDownButton.setTextColor(Color.BLUE);
+		zoomWidthButton.setText("<>");zoomWidthButton.setTextColor(Color.BLUE);
+		zoomUpButton.setText("+]");	zoomUpButton.setTextColor(Color.BLUE);
+
+		zoomLayout.addView(btn_zoom_t, (int)(55 * metrics.density), (int)(50 * metrics.density));	// MENU key;
 		
 		zoomLayout.addView(btn_zoom_n1, (int)(33 * metrics.density), (int)(50 * metrics.density));
 		zoomLayout.addView(btn_zoom_p1, (int)(33 * metrics.density), (int)(50 * metrics.density));
@@ -1159,10 +1164,10 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
 		zoomLayout.addView(btn_zoom_f,  (int)(44 * metrics.density), (int)(50 * metrics.density));
 		zoomLayout.addView(btn_zoom_e,  (int)(44 * metrics.density), (int)(50 * metrics.density));
 		
+		zoomLayout.addView(zoomDownButton, (int)(44 * metrics.density), (int)(50 * metrics.density));	// TODO: remove hardcoded values
+		zoomLayout.addView(zoomWidthButton, (int)(44 * metrics.density), (int)(50 * metrics.density));
+		zoomLayout.addView(zoomUpButton, (int)(44 * metrics.density), (int)(50 * metrics.density));
 		
-        zoomDownButton = new Button(this);
-		zoomWidthButton = new Button(this);
-		zoomUpButton = new Button(this);
 		//zoomDownButton.setImageDrawable(getResources().getDrawable(zoomDownId[mode]));
 		//zoomDownButton.setBackgroundColor(Color.TRANSPARENT);
 		//zoomWidthButton.setImageDrawable(getResources().getDrawable(zoomWidthId[mode]));
@@ -1170,12 +1175,6 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
 		//zoomUpButton.setImageDrawable(getResources().getDrawable(zoomUpId[mode]));
 		//zoomUpButton.setBackgroundColor(Color.TRANSPARENT);
 		
-		zoomDownButton.setText("[-");
-		zoomWidthButton.setText("<>");
-		zoomUpButton.setText("+]");
-		zoomLayout.addView(zoomDownButton, (int)(44 * metrics.density), (int)(50 * metrics.density));	// TODO: remove hardcoded values
-		zoomLayout.addView(zoomWidthButton, (int)(44 * metrics.density), (int)(50 * metrics.density));
-		zoomLayout.addView(zoomUpButton, (int)(44 * metrics.density), (int)(50 * metrics.density));
 // -LS;
 
 /*		

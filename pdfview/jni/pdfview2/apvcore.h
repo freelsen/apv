@@ -10,6 +10,8 @@
 #include "fitz.h"
 #include "mupdf.h"
 
+#include "jni.h"
+
 #define MAX_BOX_NAME 8
 #define NUM_BOXES 5
 
