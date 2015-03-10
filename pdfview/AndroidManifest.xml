@@ -36,7 +36,7 @@
 
 
     <!-- 3 is 1.5 or later, that's more than 99% of devices -->
-	<uses-sdk android:minSdkVersion="3" android:targetSdkVersion="17"/>
+	<uses-sdk android:minSdkVersion="8" android:targetSdkVersion="8"/>
 
 	<supports-screens
             android:smallScreens="true"

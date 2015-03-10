@@ -145,16 +145,22 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
 	private ImageButton zoomWidthButton;
 	private ImageButton zoomUpButton;
 */	
-// +LS; 2013-02-04;
-	//private ImageButton btn_zoom_n1;
+	// bottom toolbar;	
+	private Button zoomDownButton;
+	private Button zoomUpButton;
 	
-	// top toolbar;
-	private Button btn_zoom_t;		// temp; now = Menu;	
-	private Button btn_zoom_rbar;	// readbar show/hide;
-	private Button btn_zoom_zbar;
-	
-		// show/hide;
-	int rzoom_show = 1;				// 0: hide; 1: read bar; 2: zoom bar;
+//=== +LS; 2013-02-04; ===	//private ImageButton btn_zoom_n1;
+	public boolean isshowzoom = false;
+	// 4 top buttons;
+	private Button btn_zoom_t;		// Menu;	
+	private Button btn_zoom_rbar;	// read bar( pages);
+	private Button btn_zoom_zbar;// zoom bar;
+	private Button zoomWidthButton;// horizen move bar;
+
+	private Animation zoomAnim;
+	private LinearLayout zoomLayout;
+	// 2 rows rmb buttons;
+	int rzoom_show = 1;				// 0: hide; 1: read bar; 2: zoom bar; 3= move bar;
 	private Button btn_zoom_p1;
 	private Button btn_zoom_p2;
 	private Button btn_zoom_p3;
@@ -169,20 +175,9 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
 	private Button btn_zoom_n6;
 	private Button btn_zoom_f;
 	private Button btn_zoom_e;
-
-	// bottom toolbar;	
-	private Button zoomDownButton;
-	private Button zoomWidthButton;
-	private Button zoomUpButton;
-// -LS;
-	
-	private Animation zoomAnim;
-	private LinearLayout zoomLayout;
 // +ls; 2013-02-06;
 	private LinearLayout zoomLayout2;	// 2013-02-06; AM;
 	private LinearLayout zoomLayout3;
-	private boolean isshowzoom = false;
-
 // -ls;
 	
 	// page number display
@@ -361,131 +356,55 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
 
 		saveLastPage();
 		
-		if (sensorManager != null) {
-			sensorManager.unregisterListener(this);
-			sensorManager = null;
-			SharedPreferences.Editor edit = PreferenceManager.getDefaultSharedPreferences(this).edit();
-			edit.putInt(Options.PREF_PREV_ORIENTATION, prevOrientation);
-			Log.v(TAG, "prevOrientation saved: "+prevOrientation);
-			edit.commit();
-		}		
+		ls_setOrientOnPause(); //@2013-07-24,8:41;		
 	}
 	
 	@Override
 	protected void onResume() {
 		super.onResume();
-
-		sensorManager = null;
 		
 		SharedPreferences options = PreferenceManager.getDefaultSharedPreferences(this);
 
-		if (Options.setOrientation(this)) {
-			sensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
-			if (sensorManager.getSensorList(Sensor.TYPE_ACCELEROMETER).size() > 0) {
-				gravity[0] = 0f;
-				gravity[1] = -9.81f;
-				gravity[2] = 0f;
-				gravityAge = 0;
-				sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
-						SensorManager.SENSOR_DELAY_NORMAL);
-				this.prevOrientation = options.getInt(Options.PREF_PREV_ORIENTATION, ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-				setRequestedOrientation(this.prevOrientation);
-			}
-			else {
-				setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-			}
-		}
-		
-		history  = options.getBoolean(Options.PREF_HISTORY, true);
-		boolean eink = options.getBoolean(Options.PREF_EINK, false);
-		this.pagesView.setEink(eink);
-		if (eink)
-    		this.setTheme(android.R.style.Theme_Light);
-		this.pagesView.setNook2(options.getBoolean(Options.PREF_NOOK2, false));
-		
-		if (options.getBoolean(Options.PREF_KEEP_ON, false))
-			this.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-		else
-			this.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        
-		actions = new Actions(options);
-		this.pagesView.setActions(actions);
+		ls_setOrient(options); //@2013-07-24;7:55;
+		ls_setHistory(options); //@2013-07-24,8:23;
+		ls_setEink(options); //@2013-07-24;7:59;
+		ls_setKeepScreen(options); //@2013-07-24;8:01;
+		ls_setActions(options); //@2013-07-24,8:25;
 
 		setZoomLayout(options);
 		
-		this.pagesView.setZoomLayout(zoomLayout);
-	// +ls; 2013-02-06;
-		this.pagesView.setZoomLayout(zoomLayout2);
-		this.pagesView.setZoomLayout(zoomLayout3);
-	// -ls;
-		
-		this.showZoomOnScroll = options.getBoolean(Options.PREF_SHOW_ZOOM_ON_SCROLL, false);
-		this.pagesView.setSideMargins(
-				Integer.parseInt(options.getString(Options.PREF_SIDE_MARGINS, "0")));
-		this.pagesView.setTopMargin(
-				Integer.parseInt(options.getString(Options.PREF_TOP_MARGIN, "0")));
+		ls_setZoomLayout(); // @2013-07-23.17:35;
+		ls_setShowZoomScroll(options); //@2013-07-24,8:06;
+		ls_setMargin(options); // @2013-07-24,8:06;
+		ls_setDoubleTap(options); //@2013-07-24,8:08;
+		ls_setBox(options); //@2013-07-24,8:10;
+        //this.eink; -> ls_setEink(); //@2013-07-24,8:20;
+		ls_setColor(options); //@2013-07-24,8:18;
+        ls_setCache(options); //@2013-07-24,8:15;
+        ls_setImages(options); //@2013-07-24,8:17;
+		ls_setRender(options); //@2013-07-24,8:15;
+		ls_setVerticalLock(options); //@2013-07-24,8:16;		
 
-		this.pagesView.setDoubleTap(Integer.parseInt(options.getString(Options.PREF_DOUBLE_TAP, 
-				""+Options.DOUBLE_TAP_ZOOM_IN_OUT)));
-		
-		int newBox = Integer.parseInt(options.getString(Options.PREF_BOX, "2"));
-		if (this.box != newBox) {
-			saveLastPage();
-			this.box = newBox;
-	        startPDF(options);
-	        this.pagesView.goToBookmark();
-		}
+		this.pagesView.ls_invalidate();
+				
+		ls_setZoomAnim(options); //@2013-07-23;23:24; +ls;
+		ls_setPageNumAnim(options); //@2013-07-23;23:24; +ls;
+		ls_setFade(options); //@2013-07-24,8:32;
+		ls_setFullScreen(options); //@2013-07-24,8:27;
+		ls_showPageNumText(); //@2013-07-23;23:28; +ls;
 
-        this.colorMode = Options.getColorMode(options);
-        this.eink = options.getBoolean(Options.PREF_EINK, false);
-        this.pageNumberTextView.setBackgroundColor(Options.getBackColor(colorMode));
-        this.pageNumberTextView.setTextColor(Options.getForeColor(colorMode));
-        this.pdfPagesProvider.setExtraCache(1024*1024*Options.getIntFromString(options, Options.PREF_EXTRA_CACHE, 0));
-        this.pdfPagesProvider.setOmitImages(options.getBoolean(Options.PREF_OMIT_IMAGES, false));
-		this.pagesView.setColorMode(this.colorMode);		
-		
-		this.pdfPagesProvider.setRenderAhead(options.getBoolean(Options.PREF_RENDER_AHEAD, true));
-		this.pagesView.setVerticalScrollLock(options.getBoolean(Options.PREF_VERTICAL_SCROLL_LOCK, false));
-		this.pagesView.invalidate();
-		int zoomAnimNumber = Integer.parseInt(options.getString(Options.PREF_ZOOM_ANIMATION, "2"));
-		
-		if (zoomAnimNumber == Options.ZOOM_BUTTONS_DISABLED)
-			zoomAnim = null;
-		else 
-			zoomAnim = AnimationUtils.loadAnimation(this,
-				zoomAnimations[zoomAnimNumber]);		
-		int pageNumberAnimNumber = Integer.parseInt(options.getString(Options.PREF_PAGE_ANIMATION, "3"));
-		
-		if (pageNumberAnimNumber == Options.PAGE_NUMBER_DISABLED)
-			pageNumberAnim = null;
-		else 
-			pageNumberAnim = AnimationUtils.loadAnimation(this,
-				pageNumberAnimations[pageNumberAnimNumber]);		
-
-		fadeStartOffset = 1000 * Integer.parseInt(options.getString(Options.PREF_FADE_SPEED, "7"));
-		
-		if (options.getBoolean(Options.PREF_FULLSCREEN, false))
-			getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-		else
-			getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-		this.pageNumberTextView.setVisibility(pageNumberAnim == null ? View.GONE : View.VISIBLE);
 // #ifdef pro
-	// +ls;
-		if(isshowzoom == false)
-		{
-			this.zoomLayout.setVisibility((zoomAnim == null || this.textReflowMode) ? View.GONE : View.VISIBLE);
-			this.zoomLayout2.setVisibility((zoomAnim == null || this.textReflowMode) ? View.GONE : View.VISIBLE);
-			this.zoomLayout3.setVisibility((zoomAnim == null || this.textReflowMode) ? View.GONE : View.VISIBLE);
-		}
-	// -ls;
+		if( !ls_isZoomAnim() || this.textReflowMode ) // @2013-07-23.17:53;
+			ls_showZoomLayout( false );
+		else
+			ls_showZoomLayout( true );
+		//	ls_showZoomLayout_onresume(); //@2013-07-23.17:40;
 // #endif
-		
 // #ifdef lite
-// 		this.zoomLayout.setVisibility(zoomAnim == null ? View.GONE : View.VISIBLE);
-	// +ls;
-//		this.zoomLayout2.setVisibility(zoomAnim == null ? View.GONE : View.VISIBLE);
-//		this.zoomLayout3.setVisibility(zoomAnim == null ? View.GONE : View.VISIBLE);
-	// -ls;
+		if( ls_isZoomAnim())//@2013-07-24,8:35;
+			ls_showZoomLayout(true);
+		else
+			ls_showZoomLayout(false);
 // #endif
         
         showAnimated(true);
@@ -501,111 +420,219 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
 	    Log.i(TAG, "onDestroy()");
 	    this.pdf.freeMemory(); /* gc is too slow, code must make sure double free is not possible */
 	}
+   
+    private void startPDF(SharedPreferences options) {
+	    this.pdf = this.getPDF();
+	    if (!this.pdf.isValid()) {
+	    	Log.v(TAG, "Invalid PDF");
+	    	if (this.pdf.isInvalidPassword()) {
+	    		Toast.makeText(this, "This file needs a password", Toast.LENGTH_SHORT).show();
+	    	}
+	    	else {
+	    		Toast.makeText(this, "Invalid PDF file", Toast.LENGTH_SHORT).show();
+	    	}
+	    	return;
+	    }
+	    this.colorMode = Options.getColorMode(options);
+	    this.pdfPagesProvider = new PDFPagesProvider(this, pdf, 
+	    		options.getBoolean(Options.PREF_OMIT_IMAGES, false),
+	    		options.getBoolean(Options.PREF_RENDER_AHEAD, true));
+	    pagesView.setPagesProvider(pdfPagesProvider);
+	    Bookmark b = new Bookmark(this.getApplicationContext()).open();
+	    pagesView.setStartBookmark(b, filePath);
+	    b.close();
+    }
 
     /**
-     * Set handlers on findNextButton and findHideButton.
+     * Return PDF instance wrapping file referenced by Intent.
+     * Currently reads all bytes to memory, in future local files
+     * should be passed to native code and remote ones should
+     * be downloaded to local tmp dir.
+     * @return PDF instance
      */
-    private void setFindButtonHandlers() {
-    	this.findPrevButton.setOnClickListener(new View.OnClickListener() {
-			public void onClick(View v) {
-				OpenFileActivity.this.findPrev();
+    private PDF getPDF() {
+        final Intent intent = getIntent();
+		Uri uri = intent.getData();    	
+		filePath = uri.getPath();
+		if (uri.getScheme().equals("file")) {
+			if (history) {
+				Recent recent = new Recent(this);
+				recent.add(0, filePath);
+				recent.commit();
 			}
-    	});
-    	this.findNextButton.setOnClickListener(new View.OnClickListener() {
-			public void onClick(View v) {
-				OpenFileActivity.this.findNext();
+			return new PDF(new File(filePath), this.box);
+    	} else if (uri.getScheme().equals("content")) {
+    		ContentResolver cr = this.getContentResolver();
+    		FileDescriptor fileDescriptor;
+			try {
+				fileDescriptor = cr.openFileDescriptor(uri, "r").getFileDescriptor();
+			} catch (FileNotFoundException e) {
+				throw new RuntimeException(e); // TODO: handle errors
 			}
-    	});
-    	this.findHideButton.setOnClickListener(new View.OnClickListener() {
-			public void onClick(View v) {
-				OpenFileActivity.this.findHide();
-			}
-    	});
+    		return new PDF(fileDescriptor, this.box);
+    	} else {
+    		throw new RuntimeException("don't know how to get filename from " + uri);
+    	}
     }
     
-    /**
-     * Set handlers on zoom level buttons
-     */
-    private void ls_clickshowzooms( int n)
-    {
-    	if( rzoom_show == n)
-			ShowZooms( 0 );
-		else
-			ShowZooms( n );
+	// event; @2013-07-24,9:33;
+// #ifdef pro
+    // * Handles back key by switching off text reflow mode if enabled.
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+    	if (keyCode == KeyEvent.KEYCODE_BACK) {
+    	    if (this.textReflowMode) {
+    	    	this.setTextReflowMode(false);
+    	    	return true; /* meaning we've handled event */
+    	    }
+    	}
+    	return super.onKeyDown(keyCode, event);
     }
-    private void ShowZooms( int n )
-    {
-		if( n == 0 )	// hide it;
+// #endif
+ //optional menu; @2013-07-24,9:30;
+
+	// Intercept touch events to handle the zoom buttons animation
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent event) {
+    	int action = event.getAction();
+    	if (action==MotionEvent.ACTION_UP||action==MotionEvent.ACTION_DOWN) {
+	    	showPageNumber(true);
+    		if (showZoomOnScroll) {
+		    	showZoom();
+	    	}
+    	}
+		return super.dispatchTouchEvent(event);    	
+    };
+    
+    public boolean dispatchKeyEvent(KeyEvent event) 
+	{
+    	int action = event.getAction();
+    	if (action==KeyEvent.ACTION_UP || action==KeyEvent.ACTION_DOWN) 
 		{
-			btn_zoom_n1.setVisibility(View.GONE);
-			btn_zoom_p1.setVisibility(View.GONE);
-			btn_zoom_n2.setVisibility(View.GONE);
-			btn_zoom_p2.setVisibility(View.GONE);
-			btn_zoom_n3.setVisibility(View.GONE);
-			btn_zoom_p3.setVisibility(View.GONE);
-			btn_zoom_n4.setVisibility(View.GONE);
-			btn_zoom_p4.setVisibility(View.GONE);
-			btn_zoom_n5.setVisibility(View.GONE);
-			btn_zoom_p5.setVisibility(View.GONE);
-			btn_zoom_n6.setVisibility(View.GONE);
-			btn_zoom_p6.setVisibility(View.GONE);
-			btn_zoom_f.setVisibility(View.GONE);
-			btn_zoom_e.setVisibility(View.GONE);
+    		if (!eink)
+    			showAnimated(false);
+    	}
+		return super.dispatchKeyEvent(event);    	
+    };
+    
+    public void showZoom() {
+		// +ls @2013-07-23.17:56;
+		boolean b = !( this.textReflowMode || zoomAnim == null );
+		ls_bfshowZoomLayout( b );
+		ls_showZoomLayout( b );
+		ls_afshowZoomLayout( b );
+		// -ls; @2013-07-23.18:09;
+    }
+    
+    private void fadeZoom() {
+		// +ls @2013-07-23.18:11;
+		if( this.textReflowMode )
+			ls_showZoomLayout( false );
+
+		if( zoomAnim == null || eink )
+			ls_showZoomLayout( false );
+		else {
+			ls_fadeZoomLayout();
 		}
-		else
-		{
-			btn_zoom_n1.setVisibility(View.VISIBLE);
-			btn_zoom_p1.setVisibility(View.VISIBLE);
-			btn_zoom_n2.setVisibility(View.VISIBLE);
-			btn_zoom_p2.setVisibility(View.VISIBLE);
-			btn_zoom_n3.setVisibility(View.VISIBLE);
-			btn_zoom_p3.setVisibility(View.VISIBLE);
-			btn_zoom_n4.setVisibility(View.VISIBLE);
-			btn_zoom_p4.setVisibility(View.VISIBLE);
-			btn_zoom_n5.setVisibility(View.VISIBLE);
-			btn_zoom_p5.setVisibility(View.VISIBLE);
-			btn_zoom_n6.setVisibility(View.VISIBLE);
-			btn_zoom_p6.setVisibility(View.VISIBLE);
-			btn_zoom_f.setVisibility(View.VISIBLE);
-			btn_zoom_e.setVisibility(View.VISIBLE);
-			
-		}
-		rzoom_show = n;
+    }
+    
+    public void showPageNumber(boolean force) {
+    	if (pageNumberAnim == null) {
+    		pageNumberTextView.setVisibility(View.GONE);
+    		return;
+    	}
+    	
+    	pageNumberTextView.setVisibility(View.VISIBLE);
+    	String newText = ""+(this.pagesView.getCurrentPage()+1)+"/"+
+				this.pdfPagesProvider.getPageCount();
+    	
+    	if (!force && newText.equals(pageNumberTextView.getText()))
+    		return;
+    	
+		pageNumberTextView.setText(newText);
+    	pageNumberTextView.clearAnimation();
+
+    	pageHandler.removeCallbacks(pageRunnable);
+    	pageHandler.postDelayed(pageRunnable, fadeStartOffset);
+    }
+    
+    private void fadePage() {
+    	if (eink || pageNumberAnim == null) {
+    		pageNumberTextView.setVisibility(View.GONE);
+    	}
+    	else {
+    		pageNumberAnim.setStartOffset(0);
+    		pageNumberAnim.setFillAfter(true);
+    		pageNumberTextView.startAnimation(pageNumberAnim);
+    	}
+    }    
+    
+	//     * Show zoom buttons and page number
+    public void showAnimated(boolean alsoZoom) {
+    	if (alsoZoom)
+    		showZoom();
+    	showPageNumber(true);
+    }
+    
+    // option menu; @2013-07-24,9:59;        
+    
+    
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+      super.onConfigurationChanged(newConfig);
+      Log.i(TAG, "onConfigurationChanged(" + newConfig + ")");
+    }
+    
+    // show find dialog @2013-07-24,10:04;
+    
+    private void setZoomLayout(SharedPreferences options) {
+        
+        ls_setColorMode(options); //@2013-07-24,10:16;
+        ls_createZoomLayout( ); //@2013-07-23.18:23;
+        setZoomButtonHandlers(); 		
+		ls_addZoomLayout(); // @2013-07-23;20:13;        
+        ls_showzoom();
+   }
+      
+    // finder;
+    // gui for finding text;    
+    // show table contents dialog;    
+    // onAccuracyChanged(); onSensorChanged();	
+	// text reflow mode; &ls;	
+	// nextpage();
+
+//-----------------------------------------------------------------
+//=== @2013-07-23;23:16; animation, fade ===
+	private void ls_setFade(SharedPreferences options) {
+		fadeStartOffset = 1000 * Integer.parseInt(options.getString(Options.PREF_FADE_SPEED, "7"));
+	}
+	private boolean ls_isZoomAnim() {
+		return !(zoomAnim == null );
+	}
+	private void ls_setZoomAnim(SharedPreferences options) {
+		int zoomAnimNumber = Integer.parseInt(options.getString(Options.PREF_ZOOM_ANIMATION, "2"));
 		
-    }
-    
-    
-    private void ls_zoomrelative( int n )
-    {
-    	//pagesView.doAction(actions.getAction(Actions.ZOOM_IN));
-    	pagesView.doActionZoom(n);
-    }
-    private void ls_movehoriz( int n )
-    {
-    	pagesView.doScroll( -n*10, 0);
-    }
-    public void ls_pagerelative( int n )
-    {
-    	/*
-    	//pagesView.zoomWidth();
-		this.pagesView.scrollToPage(gopage, false);
-		//this.pagesView.invalidate();
-		 */
-		int curpage = this.pagesView.getCurrentPage();
-		int gopage = curpage + n + 1;	// ls, 2013-02-06;
-		if( gopage < 0 ) gopage = 0;
-		OpenFileActivity.this.gotoPage(gopage);
-    }
-    private void ls_dobaraction( int n )
-    {
-    	if( rzoom_show == 1)
-			ls_pagerelative(n);
-    	else if( rzoom_show == 2)
-			ls_zoomrelative(n);
-    	else if( rzoom_show == 3 )
-			ls_movehoriz( n );
-    }
-    private void setZoomButtonHandlers() {
+		if (zoomAnimNumber == Options.ZOOM_BUTTONS_DISABLED)
+			zoomAnim = null;
+		else 
+			zoomAnim = AnimationUtils.loadAnimation(this,
+				zoomAnimations[zoomAnimNumber]);
+	}
+	private void ls_setPageNumAnim(SharedPreferences options) {
+		//	SharedPreferences options = PreferenceManager.getDefaultSharedPreferences(this);
+		int pageNumberAnimNumber = Integer.parseInt(options.getString(Options.PREF_PAGE_ANIMATION, "3"));
+		
+		if (pageNumberAnimNumber == Options.PAGE_NUMBER_DISABLED)
+			pageNumberAnim = null;
+		else 
+			pageNumberAnim = AnimationUtils.loadAnimation(this,
+				pageNumberAnimations[pageNumberAnimNumber]);
+	}
+	private void ls_showPageNumText() {
+		this.pageNumberTextView.setVisibility(pageNumberAnim == null ? View.GONE : View.VISIBLE);
+	}
+// === @2013-07-23;  click action; ===
+	private void ls_setZoomButtonHandlers() {// called by setZoomButtonHandlers();
     // +ls, 2013-02-04;
     	this.btn_zoom_n1.setOnClickListener(new View.OnClickListener() {
     		public void onClick(View v) {
@@ -801,6 +828,7 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
     	});
     	this.btn_zoom_rbar.setOnLongClickListener(new View.OnLongClickListener() {
 			public boolean onLongClick(View v) {
+				// 2> set updowntap action; switch page/screen updown; @2013-07-23.17:31;
 				pagesView.ls_setupdowntap();
 				return true;
 			}
@@ -812,525 +840,205 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
 			}
     	});
     // -ls;
-    	this.zoomDownButton.setOnLongClickListener(new View.OnLongClickListener() {
-			public boolean onLongClick(View v) {
-				//pagesView.doAction(actions.getAction(Actions.LONG_ZOOM_IN));
-				//pagesView.doAction(Actions.ACTION_SCREEN_DOWN);
-				OpenFileActivity.this.gotoPage(pagesView.getPageCount() -1);
-				return true;
-			}
-    	});
-    	this.zoomDownButton.setOnClickListener(new View.OnClickListener() {
-			public void onClick(View v) {
-				//pagesView.doAction(actions.getAction(Actions.ZOOM_IN));
-				pagesView.doAction(Actions.ACTION_SCREEN_DOWN);
-			}
-    	});
-    	this.zoomUpButton.setOnClickListener(new View.OnClickListener() {
-			public void onClick(View v) {
-				//pagesView.doAction(actions.getAction(Actions.ZOOM_OUT));
-				pagesView.doAction(Actions.ACTION_SCREEN_UP);
-			}
-    	});
-    	this.zoomUpButton.setOnLongClickListener(new View.OnLongClickListener() {
-			public boolean onLongClick(View v) {
-				//pagesView.doAction(actions.getAction(Actions.LONG_ZOOM_OUT));
-				//pagesView.doAction(Actions.ACTION_SCREEN_UP);
-				OpenFileActivity.this.gotoPage(0);
-				
-				return true;
-			}
-    	});
+    	
     }
-
-    private void startPDF(SharedPreferences options) {
-	    this.pdf = this.getPDF();
-	    if (!this.pdf.isValid()) {
-	    	Log.v(TAG, "Invalid PDF");
-	    	if (this.pdf.isInvalidPassword()) {
-	    		Toast.makeText(this, "This file needs a password", Toast.LENGTH_SHORT).show();
-	    	}
-	    	else {
-	    		Toast.makeText(this, "Invalid PDF file", Toast.LENGTH_SHORT).show();
-	    	}
-	    	return;
-	    }
-	    this.colorMode = Options.getColorMode(options);
-	    this.pdfPagesProvider = new PDFPagesProvider(this, pdf, 
-	    		options.getBoolean(Options.PREF_OMIT_IMAGES, false),
-	    		options.getBoolean(Options.PREF_RENDER_AHEAD, true));
-	    pagesView.setPagesProvider(pdfPagesProvider);
-	    Bookmark b = new Bookmark(this.getApplicationContext()).open();
-	    pagesView.setStartBookmark(b, filePath);
-	    b.close();
-    }
-
-    /**
-     * Return PDF instance wrapping file referenced by Intent.
-     * Currently reads all bytes to memory, in future local files
-     * should be passed to native code and remote ones should
-     * be downloaded to local tmp dir.
-     * @return PDF instance
-     */
-    private PDF getPDF() {
-        final Intent intent = getIntent();
-		Uri uri = intent.getData();    	
-		filePath = uri.getPath();
-		if (uri.getScheme().equals("file")) {
-			if (history) {
-				Recent recent = new Recent(this);
-				recent.add(0, filePath);
-				recent.commit();
-			}
-			return new PDF(new File(filePath), this.box);
-    	} else if (uri.getScheme().equals("content")) {
-    		ContentResolver cr = this.getContentResolver();
-    		FileDescriptor fileDescriptor;
-			try {
-				fileDescriptor = cr.openFileDescriptor(uri, "r").getFileDescriptor();
-			} catch (FileNotFoundException e) {
-				throw new RuntimeException(e); // TODO: handle errors
-			}
-    		return new PDF(fileDescriptor, this.box);
-    	} else {
-    		throw new RuntimeException("don't know how to get filename from " + uri);
-    	}
-    }
-    
-
-// #ifdef pro
-    /**
-     * Handle keys.
-     * Handles back key by switching off text reflow mode if enabled.
-     * @param keyCode key pressed
-     * @param event key press event
-     */
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-    	if (keyCode == KeyEvent.KEYCODE_BACK) {
-    	    if (this.textReflowMode) {
-    	    	this.setTextReflowMode(false);
-    	    	return true; /* meaning we've handled event */
-    	    }
-    	}
-    	return super.onKeyDown(keyCode, event);
-    }
-// #endif
-    
-    
-    /**
-     * Handle menu.
-     * @param menuItem selected menu item
-     * @return true if menu item was handled
-     */
-    @Override
-    public boolean onOptionsItemSelected(MenuItem menuItem) {
-    	if (menuItem == this.aboutMenuItem) {
-			Intent intent = new Intent();
-			intent.setClass(this, AboutPDFViewActivity.class);
-			this.startActivity(intent);
-    		return true;
-    	} else if (menuItem == this.gotoPageMenuItem) {
-    		this.showGotoPageDialog();
-    	} else if (menuItem == this.rotateLeftMenuItem) {
-    		this.pagesView.rotate(-1);
-    	} else if (menuItem == this.rotateRightMenuItem) {
-    		this.pagesView.rotate(1);
-    	} else if (menuItem == this.findTextMenuItem) {
-    		this.showFindDialog();
-    	} else if (menuItem == this.clearFindTextMenuItem) {
-    		this.clearFind();
-    	} else if (menuItem == this.chooseFileMenuItem) {
-    		startActivity(new Intent(this, ChooseFileActivity.class));
-    	} else if (menuItem == this.optionsMenuItem) {
-    		startActivity(new Intent(this, Options.class));
-    	// #ifdef pro
-		} else if (menuItem == this.tableOfContentsMenuItem) {
-			Outline outline = this.pdf.getOutline();
-			if (outline != null) {
-				this.showTableOfContentsDialog(outline);
-			} else {
-				Toast.makeText(this, "Table of Contents not found", Toast.LENGTH_SHORT).show();
-			}
-		} else if (menuItem == this.textReflowMenuItem) {
-			this.setTextReflowMode(! this.textReflowMode);
-
-		// #endif
-		}
-    	return false;
-    }
-    
-    private void setOrientation(int orientation) {
-    	if (orientation != this.prevOrientation) {
-    		Log.v(TAG, "setOrientation: "+orientation);
-    		setRequestedOrientation(orientation);
-    		this.prevOrientation = orientation;
-    	}
-    }
-    
- 
-
-	/**
-     * Intercept touch events to handle the zoom buttons animation
-     */
-    @Override
-    public boolean dispatchTouchEvent(MotionEvent event) {
-    	int action = event.getAction();
-    	if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_DOWN) {
-	    	showPageNumber(true);
-    		if (showZoomOnScroll) {
-		    	showZoom();
-	    	}
-    	}
-		return super.dispatchTouchEvent(event);    	
-    };
-    
-    public boolean dispatchKeyEvent(KeyEvent event) {
-    	int action = event.getAction();
-    	if (action == KeyEvent.ACTION_UP || action == KeyEvent.ACTION_DOWN) {
-    		if (!eink)
-    			showAnimated(false);
-    	}
-		return super.dispatchKeyEvent(event);    	
-    };
-    
-    public void ls_showzoom()
+	private void ls_dobaraction( int n )
     {
+    	if( rzoom_show == 1)
+			ls_pagerelative(n);
+    	else if( rzoom_show == 2)
+			ls_zoomrelative(n);
+    	else if( rzoom_show == 3 )
+			ls_movehoriz( n );
+    }
+	private void ls_zoomrelative( int n )
+    {
+    	//pagesView.doAction(actions.getAction(Actions.ZOOM_IN));
+    	pagesView.doActionZoom(n);
+    }
+    private void ls_movehoriz( int n )
+    {
+    	pagesView.ls_doScroll( -n*10, 0);
+    }
+    public void ls_pagerelative( int n )
+    {
+    	/*
+    	//pagesView.zoomWidth();
+		this.pagesView.scrollToPage(gopage, false);
+		//this.pagesView.invalidate();
+		 */
+		int curpage = this.pagesView.getCurrentPage();
+		int gopage = curpage + n + 1;	// ls, 2013-02-06;
+		if( gopage < 0 ) gopage = 0;
+		OpenFileActivity.this.gotoPage(gopage);
+    }
+//--- layout & show/hide zooms buttons; ---
+	// note: 'zoomLayout' is the original created by apv;
+	private void ls_setZoomLayout()
+	{
+		this.pagesView.setZoomLayout(zoomLayout);
+		this.pagesView.setZoomLayout(zoomLayout2);
+		this.pagesView.setZoomLayout(zoomLayout3);
+	}
+	private void ls_showZoomLayout_onresume() // not used. @2013-07-23.17:54;
+	{
+		if(isshowzoom == false)
+		{
+			this.zoomLayout.setVisibility(View.GONE);
+			//(zoomAnim == null || this.textReflowMode) ? View.GONE : View.VISIBLE);
+			this.zoomLayout2.setVisibility(View.GONE);
+			//(zoomAnim == null || this.textReflowMode) ? View.GONE : View.VISIBLE);
+			this.zoomLayout3.setVisibility(View.GONE);
+			//(zoomAnim == null || this.textReflowMode) ? View.GONE : View.VISIBLE);
+		}
+	}
+	private boolean ls_getIsshowzoom( boolean b)
+	{
+		return b && isshowzoom;
+	}
+	private void ls_bfshowZoomLayout( boolean b )
+	{
+		b = ls_getIsshowzoom( b );
+		if( b ) {
+			zoomLayout2.clearAnimation();
+	    	zoomLayout3.clearAnimation();
+	    	zoomLayout.clearAnimation();
+		}
+	}
+	private void ls_setShowZoom( boolean b ) {
+		isshowzoom = b;
+	}
+	public void ls_onShowHideZoom() {
+		ls_setShowZoom(!isshowzoom);
+		ls_showzoom();
+	}
+	public boolean ls_isShowZoom() {
+		return isshowzoom;
+	}
+	private void ls_showzoom()
+    {
+		ls_showZoomLayout( isshowzoom);
+		/* //@2013-07-23,22:55;
     	if( isshowzoom )
     	{
     		zoomLayout3.setVisibility(View.GONE);
     		zoomLayout2.setVisibility(View.GONE);
     		zoomLayout.setVisibility(View.GONE);
-    		isshowzoom = false;
+			//	isshowzoom = false;
     	}
     	else
     	{
     		zoomLayout.setVisibility(View.VISIBLE);
     		zoomLayout2.setVisibility(View.VISIBLE);
     		zoomLayout3.setVisibility(View.VISIBLE);
-    		isshowzoom = true;
+			//	isshowzoom = true;
     	}
+*/
     }
-    public void showZoom() {
-    // +ls;
-    	if( isshowzoom == false  )
-    	{
-    // -ls;
-// #ifdef pro
-	    	if (this.textReflowMode) {
-	    		zoomLayout.setVisibility(View.GONE);
-	    	// +ls;
-	    		zoomLayout2.setVisibility(View.GONE);
-	    		zoomLayout3.setVisibility(View.GONE);
-	    	// -ls;
-	    		return;
-	    	}
-// #endif
-    	
-	    	if (zoomAnim == null) {
-	    		zoomLayout.setVisibility(View.GONE);
-	    	// +ls;
-	    		zoomLayout2.setVisibility(View.GONE);
-	    		zoomLayout3.setVisibility(View.GONE);
-	    	// -ls;
-	    		return;
-	    	}
-    	}
-    	else
-    	{
-	    // +ls;
-	    	
-	    	zoomLayout2.clearAnimation();
-	    	zoomLayout2.setVisibility(View.VISIBLE);
-	    	zoomLayout3.clearAnimation();
-	    	zoomLayout3.setVisibility(View.VISIBLE);
-	    // -ls;
-	    	zoomLayout.clearAnimation();
-	    	zoomLayout.setVisibility(View.VISIBLE);
-	    	zoomHandler.removeCallbacks(zoomRunnable);
-	    	zoomHandler.postDelayed(zoomRunnable, fadeStartOffset);
-    	}
-    }
-    
-    private void fadeZoom() {
-    // +ls;
-    	if( isshowzoom == false )
-    		return;
-    // -ls;
-    	
-// #ifdef pro
-    	if (this.textReflowMode) {
-    		this.zoomLayout.setVisibility(View.GONE);
-    	// +ls;
-    		this.zoomLayout2.setVisibility(View.GONE);
-    		this.zoomLayout3.setVisibility(View.GONE);
-    	// -ls;
-    		return;
-    	}
-// #endif
-    	if (eink || zoomAnim == null) {
-    		zoomLayout.setVisibility(View.GONE);
-    	// +ls;
+	private void ls_showZoomLayout( boolean b )
+	{
+		b = ls_getIsshowzoom( b );
+		if( b )
+		{
+			zoomLayout.setVisibility(View.VISIBLE);
+    		zoomLayout2.setVisibility(View.VISIBLE);
+    		zoomLayout3.setVisibility(View.VISIBLE);			
+		}
+		else
+		{
+			zoomLayout3.setVisibility(View.GONE);
     		zoomLayout2.setVisibility(View.GONE);
-    		zoomLayout3.setVisibility(View.GONE);
-    	// -ls;
-    	}
-    	else {
-    		zoomAnim.setStartOffset(0);
-    		zoomAnim.setFillAfter(true);
-    		zoomLayout.startAnimation(zoomAnim);
+    		zoomLayout.setVisibility(View.GONE);
+		}
+		
+	}
+	private void ls_afshowZoomLayout( boolean b )
+	{
+		b = ls_getIsshowzoom( b );
+		if ( b ) {
+			zoomHandler.removeCallbacks(zoomRunnable);
+	    	zoomHandler.postDelayed(zoomRunnable, fadeStartOffset);
+		}
+	}
+	private void ls_fadeZoomLayout()
+	{
+		zoomAnim.setStartOffset(0);
+    	zoomAnim.setFillAfter(true);
+
+    	zoomLayout.startAnimation(zoomAnim);
     	// +ls;
-    		zoomLayout2.startAnimation(zoomAnim);
-    		zoomLayout3.startAnimation(zoomAnim);
+    	zoomLayout2.startAnimation(zoomAnim);
+    	zoomLayout3.startAnimation(zoomAnim);
     	// -ls;
-    	}
-    }
-    
-    public void showPageNumber(boolean force) {
-    	if (pageNumberAnim == null) {
-    		pageNumberTextView.setVisibility(View.GONE);
-    		return;
-    	}
-    	
-    	pageNumberTextView.setVisibility(View.VISIBLE);
-    	String newText = ""+(this.pagesView.getCurrentPage()+1)+"/"+
-				this.pdfPagesProvider.getPageCount();
-    	
-    	if (!force && newText.equals(pageNumberTextView.getText()))
-    		return;
-    	
-		pageNumberTextView.setText(newText);
-    	pageNumberTextView.clearAnimation();
+	}
+	private void ls_onsetTextReflowMode()
+	{
+		this.zoomLayout.clearAnimation();
+  	    // +ls;
+  	    this.zoomLayout2.clearAnimation();
+  	    this.zoomLayout3.clearAnimation();
+  	    // -ls;
 
-    	pageHandler.removeCallbacks(pageRunnable);
-    	pageHandler.postDelayed(pageRunnable, fadeStartOffset);
-    }
-    
-    private void fadePage() {
-    	if (eink || pageNumberAnim == null) {
-    		pageNumberTextView.setVisibility(View.GONE);
-    	}
-    	else {
-    		pageNumberAnim.setStartOffset(0);
-    		pageNumberAnim.setFillAfter(true);
-    		pageNumberTextView.startAnimation(pageNumberAnim);
-    	}
-    }    
-    
-    /**
-     * Show zoom buttons and page number
-     */
-    public void showAnimated(boolean alsoZoom) {
-    	if (alsoZoom)
-    		showZoom();
-    	showPageNumber(true);
-    }
-    
-    /**
-     * Hide the find buttons
-     */
-    private void clearFind() {
-		this.currentFindResultPage = null;
-		this.currentFindResultNumber = null;
-    	this.pagesView.setFindMode(false);
-		this.findButtonsLayout.setVisibility(View.GONE);
-    }
-    
-    /**
-     * Show error message to user.
-     * @param message message to show
-     */
-    private void errorMessage(String message) {
-    	AlertDialog.Builder builder = new AlertDialog.Builder(this);
-    	AlertDialog dialog = builder.setMessage(message).setTitle("Error").create();
-    	dialog.show();
-    }
-    
-    /**
-     * Called from menu when user want to go to specific page.
-     */
-    private void showGotoPageDialog() {
-    	final Dialog d = new Dialog(this);
-    	d.setTitle(R.string.goto_page_dialog_title);
-    	LinearLayout contents = new LinearLayout(this);
-    	contents.setOrientation(LinearLayout.VERTICAL);
-    	TextView label = new TextView(this);
-    	final int pagecount = this.pdfPagesProvider.getPageCount();
-    	label.setText("Page number from " + 1 + " to " + pagecount);
-    	this.pageNumberInputField = new EditText(this);
-    	this.pageNumberInputField.setInputType(InputType.TYPE_CLASS_NUMBER);
-    	this.pageNumberInputField.setText("" + (this.pagesView.getCurrentPage() + 1));
-    	Button goButton = new Button(this);
-    	goButton.setText(R.string.goto_page_go_button);
-    	goButton.setOnClickListener(new OnClickListener() {
-			public void onClick(View v) {
-				int pageNumber = -1;
-				try {
-					pageNumber = Integer.parseInt(OpenFileActivity.this.pageNumberInputField.getText().toString())-1;
-				} catch (NumberFormatException e) {
-					/* ignore */
-				}
-				d.dismiss();
-				if (pageNumber >= 0 && pageNumber < pagecount) {
-					OpenFileActivity.this.gotoPage(pageNumber);
+  	    this.zoomHandler.removeCallbacks(zoomRunnable);
 
-				} else {
-					OpenFileActivity.this.errorMessage("Invalid page number");
-				}
-			}
-    	});
-    	Button page1Button = new Button(this);
-    	page1Button.setText(getResources().getString(R.string.page) +" 1");
-    	page1Button.setOnClickListener(new OnClickListener() {
-			public void onClick(View v) {
-				d.dismiss();
-				OpenFileActivity.this.gotoPage(0);
-			}
-    	});
-    	Button lastPageButton = new Button(this);
-    	lastPageButton.setText(getResources().getString(R.string.page) +" "+pagecount);
-    	lastPageButton.setOnClickListener(new OnClickListener() {
-			public void onClick(View v) {
-				d.dismiss();
-				OpenFileActivity.this.gotoPage(pagecount-1);
-			}
-    	});
-    	LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-    	params.leftMargin = 5;
-    	params.rightMargin = 5;
-    	params.bottomMargin = 2;
-    	params.topMargin = 2;
-    	contents.addView(label, params);
-    	contents.addView(pageNumberInputField, params);
-    	contents.addView(goButton, params);
-    	contents.addView(page1Button, params);
-    	contents.addView(lastPageButton, params);
-    	d.setContentView(contents);
-    	d.show();
+  		this.zoomLayout.setVisibility(View.GONE);
+  		// +ls;
+  		this.zoomLayout2.setVisibility(View.GONE);
+  		this.zoomLayout3.setVisibility(View.GONE);
+  		// -ls;
+	}
+	
+	// called by btn_zoom_zbar/btn_zoom_rbar/zoomWidthButton:onClick();
+	private void ls_clickshowzooms( int n) 
+    {
+    	if( rzoom_show == n)
+			ShowZooms( 0 );
+		else
+			ShowZooms( n );
     }
-    
-    private void gotoPage(int page) {
-    	Log.i(TAG, "rewind to page " + page);
-    	if (this.pagesView != null) {
-    		this.pagesView.scrollToPage(page);
-            showAnimated(true);
-    	}
+    private void ShowZooms( int n )
+    {
+		if( n == 0 )	// hide it;
+		{
+			btn_zoom_n1.setVisibility(View.GONE);
+			btn_zoom_p1.setVisibility(View.GONE);
+			btn_zoom_n2.setVisibility(View.GONE);
+			btn_zoom_p2.setVisibility(View.GONE);
+			btn_zoom_n3.setVisibility(View.GONE);
+			btn_zoom_p3.setVisibility(View.GONE);
+			btn_zoom_n4.setVisibility(View.GONE);
+			btn_zoom_p4.setVisibility(View.GONE);
+			btn_zoom_n5.setVisibility(View.GONE);
+			btn_zoom_p5.setVisibility(View.GONE);
+			btn_zoom_n6.setVisibility(View.GONE);
+			btn_zoom_p6.setVisibility(View.GONE);
+			btn_zoom_f.setVisibility(View.GONE);
+			btn_zoom_e.setVisibility(View.GONE);
+		}
+		else
+		{
+			btn_zoom_n1.setVisibility(View.VISIBLE);
+			btn_zoom_p1.setVisibility(View.VISIBLE);
+			btn_zoom_n2.setVisibility(View.VISIBLE);
+			btn_zoom_p2.setVisibility(View.VISIBLE);
+			btn_zoom_n3.setVisibility(View.VISIBLE);
+			btn_zoom_p3.setVisibility(View.VISIBLE);
+			btn_zoom_n4.setVisibility(View.VISIBLE);
+			btn_zoom_p4.setVisibility(View.VISIBLE);
+			btn_zoom_n5.setVisibility(View.VISIBLE);
+			btn_zoom_p5.setVisibility(View.VISIBLE);
+			btn_zoom_n6.setVisibility(View.VISIBLE);
+			btn_zoom_p6.setVisibility(View.VISIBLE);
+			btn_zoom_f.setVisibility(View.VISIBLE);
+			btn_zoom_e.setVisibility(View.VISIBLE);
+			
+		}
+		rzoom_show = n;
+		
     }
-    
-   /**
-     * Save the last page in the bookmarks
-     */
-    private void saveLastPage() {
-    	BookmarkEntry entry = this.pagesView.toBookmarkEntry();
-        Bookmark b = new Bookmark(this.getApplicationContext()).open();
-        b.setLast(filePath, entry);
-        b.close();
-        Log.i(TAG, "last page saved for "+filePath);    
-    }
-    
-    /**
-     * 
-     * Create options menu, called by Android system.
-     * @param menu menu to populate
-     * @return true meaning that menu was populated
-     */
-// +ls, 2013-02-05;
-    @Override
-    public void openOptionsMenu() {
-     // TODO Auto-generated method stub
-     super.openOptionsMenu();
-    }
-    
-// -ls;    
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-    	super.onCreateOptionsMenu(menu);
-    	
-    	this.gotoPageMenuItem = menu.add(R.string.goto_page);
-    	this.rotateRightMenuItem = menu.add(R.string.rotate_page_left);
-    	this.rotateLeftMenuItem = menu.add(R.string.rotate_page_right);
-    	this.clearFindTextMenuItem = menu.add(R.string.clear_find_text);
-    	this.chooseFileMenuItem = menu.add(R.string.choose_file);
-    	this.optionsMenuItem = menu.add(R.string.options);
-    	/* The following appear on the second page.  The find item can safely be kept
-    	 * there since it can also be accessed from the search key on most devices.
-    	 */
-    	
-    	// #ifdef pro
-    	this.tableOfContentsMenuItem = menu.add(R.string.table_of_contents);
-    	this.textReflowMenuItem = menu.add(R.string.text_reflow);
-    	// #endif
-		this.findTextMenuItem = menu.add(R.string.find_text);
-    	this.aboutMenuItem = menu.add(R.string.about);
-    	return true;
-    }
-        
-    /**
-     * Prepare menu contents.
-     * Hide or show "Clear find results" menu item depending on whether
-     * we're in find mode.
-     * @param menu menu that should be prepared
-     */
-    @Override
-    public boolean onPrepareOptionsMenu(Menu menu) {
-    	super.onPrepareOptionsMenu(menu);
-    	this.clearFindTextMenuItem.setVisible(this.pagesView.getFindMode());
-    	return true;
-    }
-    
-    @Override
-    public void onConfigurationChanged(Configuration newConfig) {
-      super.onConfigurationChanged(newConfig);
-      Log.i(TAG, "onConfigurationChanged(" + newConfig + ")");
-    }
-    
-    /**
-     * Show find dialog.
-     * Very pretty UI code ;)
-     */
-    public void showFindDialog() {
-    	Log.d(TAG, "find dialog...");
-    	final Dialog dialog = new Dialog(this);
-    	dialog.setTitle(R.string.find_dialog_title);
-    	LinearLayout contents = new LinearLayout(this);
-    	contents.setOrientation(LinearLayout.VERTICAL);
-    	this.findTextInputField = new EditText(this);
-    	this.findTextInputField.setWidth(this.pagesView.getWidth() * 80 / 100);
-    	Button goButton = new Button(this);
-    	goButton.setText(R.string.find_go_button);
-    	goButton.setOnClickListener(new OnClickListener() {
-			public void onClick(View v) {
-				String text = OpenFileActivity.this.findTextInputField.getText().toString();
-				OpenFileActivity.this.findText(text);
-				dialog.dismiss();
-			}
-    	});
-    	LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-    	params.leftMargin = 5;
-    	params.rightMargin = 5;
-    	params.bottomMargin = 2;
-    	params.topMargin = 2;
-    	contents.addView(findTextInputField, params);
-    	contents.addView(goButton, params);
-    	dialog.setContentView(contents);
-    	dialog.show();
-    }
-    
-    private void setZoomLayout(SharedPreferences options) {
-        DisplayMetrics metrics = new DisplayMetrics();
-        getWindowManager().getDefaultDisplay().getMetrics(metrics);
-        
-        int colorMode = Options.getColorMode(options);
-        int mode = ZOOM_COLOR_NORMAL;
-        
-        if (colorMode == Options.COLOR_MODE_GREEN_ON_BLACK) {
-        	mode = ZOOM_COLOR_GREEN;
-        }
-        else if (colorMode == Options.COLOR_MODE_RED_ON_BLACK) {
-        	mode = ZOOM_COLOR_RED;
-        }
-
-        // the zoom buttons
+	private void ls_createZoomLayout()
+	{
+		// the zoom buttons
     	if (zoomLayout != null) {
     		activityLayout.removeView(zoomLayout);
     	// +ls;
@@ -1340,7 +1048,8 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
     	}
         zoomLayout = new LinearLayout(this);
         zoomLayout.setOrientation(LinearLayout.HORIZONTAL);
-    // +LS; 2013-02-06;    	
+    // +LS; 2013-02-06;   
+        
         zoomLayout2 = new LinearLayout(this);
         zoomLayout2.setOrientation(LinearLayout.HORIZONTAL);
         zoomLayout3 = new LinearLayout(this);
@@ -1389,26 +1098,26 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
         zoomDownButton = new Button(this);
 		zoomUpButton = new Button(this);
 
-		btn_zoom_t.setText("MENU");	btn_zoom_t.setTextColor(Color.BLACK);
-		zoomWidthButton.setText("Move");zoomWidthButton.setTextColor(Color.BLACK);
-		btn_zoom_zbar.setText("Zoom");	btn_zoom_zbar.setTextColor(Color.BLACK);
-		btn_zoom_rbar.setText("Page");	btn_zoom_rbar.setTextColor(Color.BLACK);
+		btn_zoom_t.setText("MENU");		//btn_zoom_t.setTextColor(Color.BLACK);
+		zoomWidthButton.setText("Move");//zoomWidthButton.setTextColor(Color.BLACK);
+		btn_zoom_zbar.setText("Zoom");	//btn_zoom_zbar.setTextColor(Color.BLACK);
+		btn_zoom_rbar.setText("Page");	//btn_zoom_rbar.setTextColor(Color.BLACK);
 		//btn_zoom_rbar.setBackgroundColor(Color.DKGRAY);
 		
-		btn_zoom_n1.setText("-1");	btn_zoom_n1.setBackgroundColor(Color.DKGRAY);//btn_zoom_n1.setTextColor(Color.BLUE);
-		btn_zoom_n2.setText("-2");	btn_zoom_n2.setBackgroundColor(Color.DKGRAY);//btn_zoom_n2.setTextColor(Color.BLUE);
-		btn_zoom_n3.setText("-5");	btn_zoom_n3.setBackgroundColor(Color.DKGRAY);//btn_zoom_n3.setTextColor(Color.BLUE);
-		btn_zoom_n4.setText("-10");	btn_zoom_n4.setBackgroundColor(Color.DKGRAY);//btn_zoom_n4.setTextColor(Color.BLUE);
-		btn_zoom_n5.setText("-20");	btn_zoom_n5.setBackgroundColor(Color.DKGRAY);//btn_zoom_n5.setTextColor(Color.BLUE);
-		btn_zoom_n6.setText("-50");	btn_zoom_n6.setBackgroundColor(Color.DKGRAY);//btn_zoom_n6.setTextColor(Color.BLUE);
-		btn_zoom_p1.setText("1");	btn_zoom_p1.setBackgroundColor(Color.DKGRAY);//btn_zoom_p1.setTextColor(Color.BLUE);
-		btn_zoom_p2.setText("2");	btn_zoom_p2.setBackgroundColor(Color.DKGRAY);//btn_zoom_p2.setTextColor(Color.BLUE);
-		btn_zoom_p3.setText("5");	btn_zoom_p3.setBackgroundColor(Color.DKGRAY);//btn_zoom_p3.setTextColor(Color.BLUE);
-		btn_zoom_p4.setText("10");	btn_zoom_p4.setBackgroundColor(Color.DKGRAY);//btn_zoom_p4.setTextColor(Color.BLUE);
-		btn_zoom_p5.setText("20");	btn_zoom_p5.setBackgroundColor(Color.DKGRAY);//btn_zoom_p5.setTextColor(Color.BLUE);
-		btn_zoom_p6.setText("50");	btn_zoom_p6.setBackgroundColor(Color.DKGRAY);//btn_zoom_p6.setTextColor(Color.BLUE);
-		btn_zoom_f.setText("-100");	btn_zoom_f.setBackgroundColor(Color.DKGRAY);//btn_zoom_f.setTextColor(Color.BLUE);
-		btn_zoom_e.setText("100");	btn_zoom_e.setBackgroundColor(Color.DKGRAY);//btn_zoom_e.setTextColor(Color.BLUE);
+		btn_zoom_n1.setText("-1");	//btn_zoom_n1.setBackgroundColor(Color.DKGRAY);//btn_zoom_n1.setTextColor(Color.BLUE);
+		btn_zoom_n2.setText("-2");	//btn_zoom_n2.setBackgroundColor(Color.DKGRAY);//btn_zoom_n2.setTextColor(Color.BLUE);
+		btn_zoom_n3.setText("-5");	//btn_zoom_n3.setBackgroundColor(Color.DKGRAY);//btn_zoom_n3.setTextColor(Color.BLUE);
+		btn_zoom_n4.setText("-10");	//btn_zoom_n4.setBackgroundColor(Color.DKGRAY);//btn_zoom_n4.setTextColor(Color.BLUE);
+		btn_zoom_n5.setText("-20");	//btn_zoom_n5.setBackgroundColor(Color.DKGRAY);//btn_zoom_n5.setTextColor(Color.BLUE);
+		btn_zoom_n6.setText("-50");	//btn_zoom_n6.setBackgroundColor(Color.DKGRAY);//btn_zoom_n6.setTextColor(Color.BLUE);
+		btn_zoom_p1.setText("1");	//btn_zoom_p1.setBackgroundColor(Color.DKGRAY);//btn_zoom_p1.setTextColor(Color.BLUE);
+		btn_zoom_p2.setText("2");	//btn_zoom_p2.setBackgroundColor(Color.DKGRAY);//btn_zoom_p2.setTextColor(Color.BLUE);
+		btn_zoom_p3.setText("5");	//btn_zoom_p3.setBackgroundColor(Color.DKGRAY);//btn_zoom_p3.setTextColor(Color.BLUE);
+		btn_zoom_p4.setText("10");	//btn_zoom_p4.setBackgroundColor(Color.DKGRAY);//btn_zoom_p4.setTextColor(Color.BLUE);
+		btn_zoom_p5.setText("20");	//btn_zoom_p5.setBackgroundColor(Color.DKGRAY);//btn_zoom_p5.setTextColor(Color.BLUE);
+		btn_zoom_p6.setText("50");	//btn_zoom_p6.setBackgroundColor(Color.DKGRAY);//btn_zoom_p6.setTextColor(Color.BLUE);
+		btn_zoom_f.setText("-100");	//btn_zoom_f.setBackgroundColor(Color.DKGRAY);//btn_zoom_f.setTextColor(Color.BLUE);
+		btn_zoom_e.setText("100");	//btn_zoom_e.setBackgroundColor(Color.DKGRAY);//btn_zoom_e.setTextColor(Color.BLUE);
 		
 		// init show/hide;
 		//if( rzoom_show > 0 )	// now = show; hide it;
@@ -1434,7 +1143,9 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
 		//zoomDownButton.setText("->");zoomDownButton.setTextColor(Color.BLUE);
 
 	// +ls; 2013-02-06;
-		
+		DisplayMetrics metrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(metrics);
+        
 		zoomLayout2.addView(btn_zoom_p1, (int)(55 * metrics.density), (int)(50 * metrics.density));
 		zoomLayout2.addView(btn_zoom_p2, (int)(55 * metrics.density), (int)(50 * metrics.density));		
 		zoomLayout2.addView(btn_zoom_p3, (int)(55 * metrics.density), (int)(50 * metrics.density));		
@@ -1460,6 +1171,10 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
 		//zoomLayout.addView(zoomDownButton, (int)(80 * metrics.density), (int)(50 * metrics.density));	// TODO: remove hardcoded values
 // -LS;
 
+		
+	}
+	private void ls_addZoomLayout()
+	{
 		RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
         		RelativeLayout.LayoutParams.WRAP_CONTENT, 
         		RelativeLayout.LayoutParams.WRAP_CONTENT);
@@ -1482,48 +1197,273 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
 		lp3.addRule(RelativeLayout.ABOVE, 2);//.ALIGN_PARENT_TOP);
 		
 	// -ls;
-        setZoomButtonHandlers();
- 		activityLayout.addView(zoomLayout,lp);
+		activityLayout.addView(zoomLayout,lp);
  	// +ls;
         activityLayout.addView(zoomLayout2,lp2);
         activityLayout.addView(zoomLayout3,lp3);
     // -ls;
-        
-        ls_showzoom();
-   }
+	}
 
-   
-    private void findText(String text) {
+// === @2013-07-24;7:54; orientation ===
+	private void ls_setOrient(SharedPreferences options) {
+		sensorManager = null;
+
+		if (Options.setOrientation(this)) {
+			sensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
+			if (sensorManager.getSensorList(Sensor.TYPE_ACCELEROMETER).size() > 0) {
+				gravity[0] = 0f;
+				gravity[1] = -9.81f;
+				gravity[2] = 0f;
+				gravityAge = 0;
+				sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
+						SensorManager.SENSOR_DELAY_NORMAL);
+				this.prevOrientation = options.getInt(Options.PREF_PREV_ORIENTATION, ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+				setRequestedOrientation(this.prevOrientation);
+			}
+			else {
+				setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+			}
+		}
+	}
+	private void ls_setOrientOnPause() {
+		if (sensorManager != null) {
+			sensorManager.unregisterListener(this);
+			sensorManager = null;
+			SharedPreferences.Editor edit = PreferenceManager.getDefaultSharedPreferences(this).edit();
+			edit.putInt(Options.PREF_PREV_ORIENTATION, prevOrientation);
+			Log.v(TAG, "prevOrientation saved: "+prevOrientation);
+			edit.commit();
+		}
+	}
+	private void setOrientation(int orientation) {
+    	if (orientation != this.prevOrientation) {
+    		Log.v(TAG, "setOrientation: "+orientation);
+    		setRequestedOrientation(orientation);
+    		this.prevOrientation = orientation;
+    	}
+    }
+	/**
+     * Called when accuracy changes.
+     * This method is empty, but it's required by relevant interface.
+     */
+	public void onAccuracyChanged(Sensor sensor, int accuracy) {
+	}
+
+	public void onSensorChanged(SensorEvent event) {
+		gravity[0] = 0.8f * gravity[0] + 0.2f * event.values[0];
+		gravity[1] = 0.8f * gravity[1] + 0.2f * event.values[1];
+		gravity[2] = 0.8f * gravity[2] + 0.2f * event.values[2];
+
+		float sq0 = gravity[0]*gravity[0];
+		float sq1 = gravity[1]*gravity[1];
+		float sq2 = gravity[2]*gravity[2];
+		
+		gravityAge++;
+		
+		if (gravityAge < 4) {
+			// ignore initial hiccups
+			return;
+		}
+		
+		if (sq1 > 3 * (sq0 + sq2)) {
+			if (gravity[1] > 4) 
+				setOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+			//else if (gravity[1] < -4 && Integer.parseInt(Build.VERSION.SDK) >= 9) 
+			//	setOrientation(ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT);
+		}
+		else if (sq0 > 3 * (sq1 + sq2)) {
+			if (gravity[0] > 4)
+				setOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+			//else if (gravity[0] < -4 && Integer.parseInt(Build.VERSION.SDK) >= 9) 
+			//	setOrientation(ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE);
+		}
+	}
+
+	// === @2013-07-24;7:57; eink; ===
+	private void ls_setEink(SharedPreferences options ) {
+		boolean eink = options.getBoolean(Options.PREF_EINK, false);
+		this.pagesView.setEink(eink);
+		if (eink)
+    		this.setTheme(android.R.style.Theme_Light);
+		this.pagesView.setNook2(options.getBoolean(Options.PREF_NOOK2, false));
+
+		this.eink = options.getBoolean(Options.PREF_EINK, false);
+	}
+	// === @2013-07-24;8:01; keep screen ===
+	private void ls_setKeepScreen(SharedPreferences options) {
+		if (options.getBoolean(Options.PREF_KEEP_ON, false))
+			this.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+		else
+			this.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+	}
+
+	//=== @2013-07-24,8:03; show zoom on scroll; ===
+	private void ls_setShowZoomScroll(SharedPreferences options) {
+		this.showZoomOnScroll = options.getBoolean(Options.PREF_SHOW_ZOOM_ON_SCROLL, false);
+	}
+
+	//===@2013-07-24,8:04; margins; ===
+	private void ls_setMargin(SharedPreferences options) {
+		this.pagesView.setSideMargins(
+				Integer.parseInt(options.getString(Options.PREF_SIDE_MARGINS, "0")));
+		this.pagesView.setTopMargin(
+				Integer.parseInt(options.getString(Options.PREF_TOP_MARGIN, "0")));
+
+	}
+
+	//===@2013-07-24,8:06; double tap; ===
+	private void ls_setDoubleTap(SharedPreferences options) {
+		this.pagesView.setDoubleTap(Integer.parseInt(options.getString(Options.PREF_DOUBLE_TAP, 
+				""+Options.DOUBLE_TAP_ZOOM_IN_OUT)));
+	}
+
+	//===@2013-07-24,8:09; box; ===
+	private void ls_setBox(SharedPreferences options) {
+		int newBox = Integer.parseInt(options.getString(Options.PREF_BOX, "2"));
+		if (this.box != newBox) {
+			saveLastPage();
+			this.box = newBox;
+	        startPDF(options);
+	        this.pagesView.goToBookmark();
+		}
+	}
+//=== @2013-07-24,10:12; color, image; ===
+
+	private void ls_setColor(SharedPreferences options) {
+		this.colorMode = Options.getColorMode(options);
+		this.pageNumberTextView.setBackgroundColor(Options.getBackColor(colorMode));
+        this.pageNumberTextView.setTextColor(Options.getForeColor(colorMode));
+		this.pagesView.setColorMode(this.colorMode);
+	}
+
+	private void ls_setImages(SharedPreferences options) {
+		this.pdfPagesProvider.setOmitImages(options.getBoolean(Options.PREF_OMIT_IMAGES, false));
+	}
+
+	private void ls_setColorMode(SharedPreferences options) {
+		int colorMode = Options.getColorMode(options);
+        int mode = ZOOM_COLOR_NORMAL;
+        
+        if (colorMode == Options.COLOR_MODE_GREEN_ON_BLACK) {
+        	mode = ZOOM_COLOR_GREEN;
+        }
+        else if (colorMode == Options.COLOR_MODE_RED_ON_BLACK) {
+        	mode = ZOOM_COLOR_RED;
+        }
+	}
+
+// ===@2013-07-24,8:12; other settings; ===
+	private void ls_setCache(SharedPreferences options) {
+		this.pdfPagesProvider.setExtraCache(1024*1024*Options.getIntFromString(options, Options.PREF_EXTRA_CACHE, 0));
+	}
+	private void ls_setRender(SharedPreferences options) {
+		this.pdfPagesProvider.setRenderAhead(options.getBoolean(Options.PREF_RENDER_AHEAD, true));
+	}
+	private void ls_setVerticalLock(SharedPreferences options) {
+		this.pagesView.setVerticalScrollLock(options.getBoolean(Options.PREF_VERTICAL_SCROLL_LOCK, false));
+	}
+	//===@2013-07-24,8:22; history; ===
+	private void ls_setHistory(SharedPreferences options) {
+		history  = options.getBoolean(Options.PREF_HISTORY, true);
+	}
+	//===@2013-07-24,8:24; actions ===
+	private void ls_setActions(SharedPreferences options) {
+		actions = new Actions(options);
+		this.pagesView.setActions(actions);
+	}
+	//===@2013-07-24,8:26; full screen; ===
+	private void ls_setFullScreen(SharedPreferences options) {
+		if (options.getBoolean(Options.PREF_FULLSCREEN, false))
+			getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+		else
+			getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+	}
+
+//----------------------------------------------------------------
+//=== @2013-07-24, find; ===
+    private void setFindButtonHandlers() 
+	{
+    	this.findPrevButton.setOnClickListener(
+		new View.OnClickListener() {
+			public void onClick(View v) {
+				OpenFileActivity.this.findPrev();
+			}
+    	});
+    	this.findNextButton.setOnClickListener(
+		new View.OnClickListener() {
+			public void onClick(View v) {
+				OpenFileActivity.this.findNext();
+			}
+    	});
+    	this.findHideButton.setOnClickListener(
+        new View.OnClickListener() {
+			public void onClick(View v) {
+				OpenFileActivity.this.findHide();
+			}
+    	});
+    }
+
+	 private void findText(String text) {
     	Log.d(TAG, "findText(" + text + ")");
     	this.findText = text;
     	this.find(true);
     }
-    
-    /**
-     * Called when user presses "next" button in find panel.
-     */
+
+	//     * Hide the find buttons
+    private void clearFind() {
+		this.currentFindResultPage = null;
+		this.currentFindResultNumber = null;
+    	this.pagesView.setFindMode(false);
+		this.findButtonsLayout.setVisibility(View.GONE);
+    }
+	//     * Called when user presses "next" button in find panel.
     private void findNext() {
     	this.find(true);
     }
-
-    /**
-     * Called when user presses "prev" button in find panel.
-     */
+	//     * Called when user presses "prev" button in find panel.
     private void findPrev() {
     	this.find(false);
     }
-    
-    /**
-     * Called when user presses hide button in find panel.
-     */
+	//     * Called when user presses hide button in find panel.
     private void findHide() {
     	if (this.pagesView != null) this.pagesView.setFindMode(false);
     	this.currentFindResultNumber = null;
     	this.currentFindResultPage = null;
     	this.findButtonsLayout.setVisibility(View.GONE);
     }
+	/**
+     * Show find dialog.
+     * Very pretty UI code ;)
+     */
+    public void showFindDialog() {
+    	Log.d(TAG, "find dialog...");
+    	final Dialog dialog = new Dialog(this);
+    	dialog.setTitle(R.string.find_dialog_title);
+    	LinearLayout contents = new LinearLayout(this);
+    	contents.setOrientation(LinearLayout.VERTICAL);
+    	this.findTextInputField = new EditText(this);
+    	this.findTextInputField.setWidth(this.pagesView.getWidth() * 80 / 100);
+    	Button goButton = new Button(this);
+    	goButton.setText(R.string.find_go_button);
+    	goButton.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				String text = OpenFileActivity.this.findTextInputField.getText().toString();
+				OpenFileActivity.this.findText(text);
+				dialog.dismiss();
+			}
+    	});
+    	LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+    	params.leftMargin = 5;
+    	params.rightMargin = 5;
+    	params.bottomMargin = 2;
+    	params.topMargin = 2;
+    	contents.addView(findTextInputField, params);
+    	contents.addView(goButton, params);
+    	dialog.setContentView(contents);
+    	dialog.show();
+    }
 
-    /**
+	/**
      * Helper class that handles search progress, search cancelling etc.
      */
 	static class Finder implements Runnable, DialogInterface.OnCancelListener, DialogInterface.OnClickListener {
@@ -1650,13 +1590,13 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
 					Finder.this.parent.pagesView.setFindMode(true);
 					Finder.this.parent.pagesView.scrollToFindResult(fn);
 					Finder.this.parent.findButtonsLayout.setVisibility(View.VISIBLE);					
-					Finder.this.parent.pagesView.invalidate();
+					Finder.this.parent.pagesView.ls_invalidate();
 				}
 			});
 		}
 	};
-    
-    /**
+
+	/**
      * GUI for finding text.
      * Used both on initial search and for "next" and "prev" searches.
      * Displays dialog, handles cancel button, hides dialog as soon as
@@ -1671,7 +1611,7 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
     			/* no need to really find - just focus on given result and exit */
     			this.currentFindResultNumber = nextResultNum;
     			this.pagesView.scrollToFindResult(nextResultNum);
-    			this.pagesView.invalidate();
+    			this.pagesView.ls_invalidate();
     			return;
     		}
     	}
@@ -1681,8 +1621,258 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
     	Thread finderThread = new Thread(finder);
     	finderThread.start();
     }
+
+//=== Set handlers on zoom level buttons ===
+	// codes has moved to the end of this file by ls @2013-07-23; 16:59;
+	private void setZoomButtonHandlers() 
+    {
+
+		ls_setZoomButtonHandlers();
+
+		this.zoomDownButton.setOnLongClickListener(
+        new View.OnLongClickListener() {
+			public boolean onLongClick(View v) {
+				//pagesView.doAction(actions.getAction(Actions.LONG_ZOOM_IN));
+				//pagesView.doAction(Actions.ACTION_SCREEN_DOWN);
+				OpenFileActivity.this.gotoPage(pagesView.getPageCount() -1);
+				return true;
+			}
+    	});
+    	this.zoomDownButton.setOnClickListener(
+        new View.OnClickListener() {
+			public void onClick(View v) {
+				//pagesView.doAction(actions.getAction(Actions.ZOOM_IN));
+				pagesView.doAction(Actions.ACTION_SCREEN_DOWN);
+			}
+    	});
+    	this.zoomUpButton.setOnClickListener(
+        new View.OnClickListener() {
+			public void onClick(View v) {
+				//pagesView.doAction(actions.getAction(Actions.ZOOM_OUT));
+				pagesView.doAction(Actions.ACTION_SCREEN_UP);
+			}
+    	});
+    	this.zoomUpButton.setOnLongClickListener(
+        new View.OnLongClickListener() {
+			public boolean onLongClick(View v) {
+				//pagesView.doAction(actions.getAction(Actions.LONG_ZOOM_OUT));
+				//pagesView.doAction(Actions.ACTION_SCREEN_UP);
+				OpenFileActivity.this.gotoPage(0);
+				
+				return true;
+			}
+    	}); 
+	}
+	//    }
     
-// #ifdef pro
+    /**
+     * Show error message to user.
+     * @param message message to show
+     */
+    private void errorMessage(String message) {
+    	AlertDialog.Builder builder = new AlertDialog.Builder(this);
+    	AlertDialog dialog = builder.setMessage(message).setTitle("Error").create();
+    	dialog.show();
+    }
+//=== @2013-07-24,9:35 page operation; ===
+	private void gotoPage(int page) {
+    	Log.i(TAG, "rewind to page " + page);
+    	if (this.pagesView != null) {
+    		this.pagesView.scrollToPage(page);
+			showAnimated(true);
+    	}
+    }
+    
+   /**
+     * Save the last page in the bookmarks
+     */
+    private void saveLastPage() {
+    	BookmarkEntry entry = this.pagesView.toBookmarkEntry();
+        Bookmark b = new Bookmark(this.getApplicationContext()).open();
+        b.setLast(filePath, entry);
+        b.close();
+        Log.i(TAG, "last page saved for "+filePath);    
+    }
+
+// #ifdef pro 	
+	/**
+	 * Change to next or prev page.
+	 * Called from text reflow mode buttons.
+	 * @param offset if 1 then go to next page, if -1 then go to prev page, otherwise raise IllegalArgumentException
+	 */
+	private void nextPage(int offset) {
+		if (offset == 1) {
+			this.pagesView.doAction(Actions.ACTION_FULL_PAGE_DOWN);
+		} else if (offset == -1) {
+			this.pagesView.doAction(Actions.ACTION_FULL_PAGE_UP);
+		} else {
+			throw new IllegalArgumentException("invalid offset: " + offset);
+		}
+		if (this.textReflowMode) {
+			int page = this.pagesView.getCurrentPage();
+			String text = this.pdf.getText(page);
+			if (text == null) text = "";
+			text = text.trim();
+			this.textReflowTextView.setText(text);
+			this.textReflowScrollView.scrollTo(0,0);
+		}
+//
+	}
+// #endif
+
+    /**
+     * Called from menu when user want to go to specific page.
+     */
+    private void showGotoPageDialog() 
+	{
+    	final Dialog d = new Dialog(this);
+    	d.setTitle(R.string.goto_page_dialog_title);
+    	LinearLayout contents = new LinearLayout(this);
+    	contents.setOrientation(LinearLayout.VERTICAL);
+    	TextView label = new TextView(this);
+    	final int pagecount = this.pdfPagesProvider.getPageCount();
+    	label.setText("Page number from " + 1 + " to " + pagecount);
+    	this.pageNumberInputField = new EditText(this);
+    	this.pageNumberInputField.setInputType(InputType.TYPE_CLASS_NUMBER);
+    	this.pageNumberInputField.setText("" + (this.pagesView.getCurrentPage() + 1));
+    	Button goButton = new Button(this);
+    	goButton.setText(R.string.goto_page_go_button);
+    	goButton.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				int pageNumber = -1;
+				try {
+					pageNumber = Integer.parseInt(OpenFileActivity.this.pageNumberInputField.getText().toString())-1;
+				} catch (NumberFormatException e) {
+					/* ignore */
+				}
+				d.dismiss();
+				if (pageNumber >= 0 && pageNumber < pagecount) {
+					OpenFileActivity.this.gotoPage(pageNumber);
+
+				} else {
+					OpenFileActivity.this.errorMessage("Invalid page number");
+				}
+			}
+    	});
+    	Button page1Button = new Button(this);
+    	page1Button.setText(getResources().getString(R.string.page) +" 1");
+    	page1Button.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				d.dismiss();
+				OpenFileActivity.this.gotoPage(0);
+			}
+    	});
+    	Button lastPageButton = new Button(this);
+    	lastPageButton.setText(getResources().getString(R.string.page) +" "+pagecount);
+    	lastPageButton.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				d.dismiss();
+				OpenFileActivity.this.gotoPage(pagecount-1);
+			}
+    	});
+    	LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+    	params.leftMargin = 5;
+    	params.rightMargin = 5;
+    	params.bottomMargin = 2;
+    	params.topMargin = 2;
+    	contents.addView(label, params);
+    	contents.addView(pageNumberInputField, params);
+    	contents.addView(goButton, params);
+    	contents.addView(page1Button, params);
+    	contents.addView(lastPageButton, params);
+    	d.setContentView(contents);
+    	d.show();
+    }
+
+	//=== @2013-07-24,9:29; optional menu operation ===
+
+	//     * Create options menu, called by Android system.
+    // * @param menu menu to populate
+    // * @return true meaning that menu was populated
+
+// +ls, 2013-02-05;
+    @Override
+    public void openOptionsMenu() {
+     // TODO Auto-generated method stub
+     super.openOptionsMenu();
+    }
+// -ls;  
+	
+	@Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+    	super.onCreateOptionsMenu(menu);
+    	
+    	this.gotoPageMenuItem = menu.add(R.string.goto_page);
+    	this.rotateRightMenuItem = menu.add(R.string.rotate_page_left);
+    	this.rotateLeftMenuItem = menu.add(R.string.rotate_page_right);
+    	this.clearFindTextMenuItem = menu.add(R.string.clear_find_text);
+    	this.chooseFileMenuItem = menu.add(R.string.choose_file);
+    	this.optionsMenuItem = menu.add(R.string.options);
+    	/* The following appear on the second page.  The find item can safely be kept
+    	 * there since it can also be accessed from the search key on most devices.
+    	 */
+    	
+    	// #ifdef pro
+    	this.tableOfContentsMenuItem = menu.add(R.string.table_of_contents);
+    	this.textReflowMenuItem = menu.add(R.string.text_reflow);
+    	// #endif
+		this.findTextMenuItem = menu.add(R.string.find_text);
+    	this.aboutMenuItem = menu.add(R.string.about);
+    	return true;
+    }
+
+	/**
+     * Prepare menu contents.
+     * Hide or show "Clear find results" menu item depending on whether
+     * we're in find mode.
+     * @param menu menu that should be prepared
+     */
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+    	super.onPrepareOptionsMenu(menu);
+    	this.clearFindTextMenuItem.setVisible(this.pagesView.getFindMode());
+    	return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem menuItem) {
+    	if (menuItem == this.aboutMenuItem) {
+			Intent intent = new Intent();
+			intent.setClass(this, AboutPDFViewActivity.class);
+			this.startActivity(intent);
+    		return true;
+    	} else if (menuItem == this.gotoPageMenuItem) {
+    		this.showGotoPageDialog();
+    	} else if (menuItem == this.rotateLeftMenuItem) {
+    		this.pagesView.rotate(-1);
+    	} else if (menuItem == this.rotateRightMenuItem) {
+    		this.pagesView.rotate(1);
+    	} else if (menuItem == this.findTextMenuItem) {
+    		this.showFindDialog();
+    	} else if (menuItem == this.clearFindTextMenuItem) {
+    		this.clearFind();
+    	} else if (menuItem == this.chooseFileMenuItem) {
+    		startActivity(new Intent(this, ChooseFileActivity.class));
+    	} else if (menuItem == this.optionsMenuItem) {
+    		startActivity(new Intent(this, Options.class));
+    	// #ifdef pro
+		} else if (menuItem == this.tableOfContentsMenuItem) {
+			Outline outline = this.pdf.getOutline();
+			if (outline != null) {
+				this.showTableOfContentsDialog(outline);
+			} else {
+				Toast.makeText(this, "Table of Contents not found", Toast.LENGTH_SHORT).show();
+			}
+		} else if (menuItem == this.textReflowMenuItem) {
+			this.setTextReflowMode(! this.textReflowMode);
+
+		// #endif
+		}
+    	return false;
+    }
+
+	//=== @2013-07-24,10:21 content table ===
+	// #ifdef pro
     /**
      * Build and display dialog containing table of contents.
      * @param outline root of TOC tree
@@ -1759,48 +1949,10 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
     	});
     	dialog.show();
     }
+	// #endif
 
-// #endif
-    
-    /**
-     * Called when accuracy changes.
-     * This method is empty, but it's required by relevant interface.
-     */
-	public void onAccuracyChanged(Sensor sensor, int accuracy) {
-	}
-
-	public void onSensorChanged(SensorEvent event) {
-		gravity[0] = 0.8f * gravity[0] + 0.2f * event.values[0];
-		gravity[1] = 0.8f * gravity[1] + 0.2f * event.values[1];
-		gravity[2] = 0.8f * gravity[2] + 0.2f * event.values[2];
-
-		float sq0 = gravity[0]*gravity[0];
-		float sq1 = gravity[1]*gravity[1];
-		float sq2 = gravity[2]*gravity[2];
-		
-		gravityAge++;
-		
-		if (gravityAge < 4) {
-			// ignore initial hiccups
-			return;
-		}
-		
-		if (sq1 > 3 * (sq0 + sq2)) {
-			if (gravity[1] > 4) 
-				setOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-			else if (gravity[1] < -4 && Integer.parseInt(Build.VERSION.SDK) >= 9) 
-				setOrientation(ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT);
-		}
-		else if (sq0 > 3 * (sq1 + sq2)) {
-			if (gravity[0] > 4)
-				setOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-			else if (gravity[0] < -4 && Integer.parseInt(Build.VERSION.SDK) >= 9) 
-				setOrientation(ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE);
-		}
-	}
-	
-	
-// #ifdef pro
+//=== @2013-07-24,10:23; text reflow mode; ===
+	// #ifdef pro
   	/**
   	 * Switch text reflow mode and set this.textReflowMode by hiding and showing relevant interface elements.
   	 * @param mode if true ten show text reflow view, otherwise hide text reflow view
@@ -1817,17 +1969,9 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
   			this.textReflowScrollView.scrollTo(0,0);
   			this.textReflowMenuItem.setTitle("Close Text Reflow");
   			this.pagesView.setVisibility(View.GONE);
-  	    	this.zoomLayout.clearAnimation();
-  	    // +ls;
-  	    	this.zoomLayout2.clearAnimation();
-  	    	this.zoomLayout3.clearAnimation();
-  	    // -ls;
-  	    	this.zoomHandler.removeCallbacks(zoomRunnable);
-  			this.zoomLayout.setVisibility(View.GONE);
-  		// +ls;
-  			this.zoomLayout2.setVisibility(View.GONE);
-  			this.zoomLayout3.setVisibility(View.GONE);
-  		// -ls;
+  	    	
+			ls_onsetTextReflowMode(); // @2013-07-23.18:28;
+
   			this.textReflowView.setVisibility(View.VISIBLE);
   			this.textReflowMode = true;
   		} else {
@@ -1838,33 +1982,6 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
   			this.showZoom();
   		}
   	}
-// #endif
-	
-	
-// #ifdef pro 	
-	/**
-	 * Change to next or prev page.
-	 * Called from text reflow mode buttons.
-	 * @param offset if 1 then go to next page, if -1 then go to prev page, otherwise raise IllegalArgumentException
-	 */
-	private void nextPage(int offset) {
-		if (offset == 1) {
-			this.pagesView.doAction(Actions.ACTION_FULL_PAGE_DOWN);
-		} else if (offset == -1) {
-			this.pagesView.doAction(Actions.ACTION_FULL_PAGE_UP);
-		} else {
-			throw new IllegalArgumentException("invalid offset: " + offset);
-		}
-		if (this.textReflowMode) {
-			int page = this.pagesView.getCurrentPage();
-			String text = this.pdf.getText(page);
-			if (text == null) text = "";
-			text = text.trim();
-			this.textReflowTextView.setText(text);
-			this.textReflowScrollView.scrollTo(0,0);
-		}
-//
-	}
 // #endif
 
 }

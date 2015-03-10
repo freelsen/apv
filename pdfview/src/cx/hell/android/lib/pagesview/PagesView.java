@@ -179,12 +179,15 @@ public class PagesView extends View implements
 	private Scroller scroller = null;
 	
 	private boolean verticalScrollLock = true;
+	private boolean horizScrollLock = true; //+ls @2013-07-24;
+	private boolean lockedHoriz = false;	//+ls @2013-07-24;
 	private boolean lockedVertically = false;
 	private float downX = 0;
 	private float downY = 0;
 	private float lastX = 0;
 	private float lastY = 0;
 	private float maxExcursionY = 0;
+	private float maxExcursionX = 0;
 	private int doubleTapAction = Options.DOUBLE_TAP_ZOOM_IN_OUT;
 	private int zoomToRestore = 0;
 	private int leftToRestore;
@@ -220,154 +223,14 @@ public class PagesView extends View implements
 
 		this.scroller = null; // new Scroller(activity);
 
-		this.gestureDetector = new GestureDetector(activity,
-				new GestureDetector.OnGestureListener() {
-					public boolean onDown(MotionEvent e) {
-						return false;
-					}
-
-					public boolean onFling(MotionEvent e1, MotionEvent e2,
-							float velocityX, float velocityY) {
-
-						if (lockedVertically)
-							velocityX = 0;
-
-						doFling(velocityX, velocityY);
-						return true;
-					}
-
-					public void onLongPress(MotionEvent e) {
-					}
-
-					public boolean onScroll(MotionEvent e1, MotionEvent e2,
-							float distanceX, float distanceY) {
-						return false;
-					}
-
-					public void onShowPress(MotionEvent e) {
-					}
-
-					public boolean onSingleTapUp(MotionEvent e) {
-						return false;
-					}
-		});
+		ls_createGestureDetector(); //@2013-07-24;		
+		//	final OpenFileActivity openFileActivity = (OpenFileActivity)activity;
+		//final PagesView pagesView = this;		
+		ls_setGestureDetector(); //@2013-07-24;
 		
-		final OpenFileActivity openFileActivity = (OpenFileActivity)activity;
-		final PagesView pagesView = this;
-// !ls; double click;		
-		gestureDetector.setOnDoubleTapListener(new OnDoubleTapListener() {
-			public boolean onDoubleTap(MotionEvent e) {
-				switch(doubleTapAction) {
-				case Options.DOUBLE_TAP_ZOOM_IN_OUT:
-					if (zoomToRestore != 0) {
-						left = leftToRestore;
-						top = top * zoomToRestore / zoomLevel;
-						zoomLevel = zoomToRestore;
-						invalidate();
-						zoomToRestore = 0;
-					}
-					else {
-						int oldLeft = left;
-						int oldZoom = zoomLevel;
-						left += e.getX() - width/2;
-						top += e.getY() - height/2;
-						zoom(2f);
-						zoomToRestore = oldZoom;
-						leftToRestore = oldLeft;
-					}
-					return true;
-				case Options.DOUBLE_TAP_ZOOM:
-					left += e.getX() - width/2;
-					top += e.getY() - height/2;
-					zoom(2f);
-					return true;
-				default:
-					return false;
-				}
-			}
-
-			public boolean onDoubleTapEvent(MotionEvent e) {
-				return false;
-			}
-// !ls; single tap;
-			public boolean onSingleTapConfirmed(MotionEvent e) {
-				//final Activity activity = this.activity;
-				
-    			if (mtDebounce + 600 > SystemClock.uptimeMillis()) 
-    				return false;
-
-				
-				
-				if (!showZoomOnScroll) {
-					openFileActivity.showZoom();
-					pagesView.invalidate();
-				}
-				
-				// check if in the zoomlayout area; if true, then ignore;
-				if (zoomLayout != null) {
-					Rect r = new Rect();
-					
-					zoomLayout.getDrawingRect(r);
-					
-					r.set(r.left - 5, r.top - 5, r.right + 5, r.bottom + 5);
-					
-					if (r.contains((int)e.getX(), (int)e.getY()))
-						return false;
-				}
-				
-			// +ls; 2013-02-06; 22:55;
-				Rect upleft = new Rect();
-				Rect upright = new Rect();
-				Rect downleft = new Rect();
-				Rect downright = new Rect();
-				
-				upleft.set(0, height / 4, 100, height / 2);
-				upright.set(width - 100, height/4, width, height/2);
-				downleft.set(0, height/2, 100, height*3/4);
-				downright.set(width-100, height/2, width, height*3/4);
-				
-				
-				if( upleft.contains((int)e.getX(), (int)e.getY()) || 
-					upright.contains((int)e.getX(), (int)e.getY()) )
-					return doAction(actions.getAction(Actions.TOP_TAP));
-				if( downleft.contains((int)e.getX(), (int)e.getY()) || 
-					downright.contains((int)e.getX(), (int)e.getY()) )
-					return doAction(actions.getAction(Actions.BOTTOM_TAP));
-
-				Rect leftbottomcon = new Rect();
-				leftbottomcon.set(0, height - 100, 100, height);
-				if( leftbottomcon.contains((int)e.getX(), (int)e.getY()))
-				{
-					
-					openFileActivity.ls_showzoom();
-					return true;
-				}
-						
-				
-				return false;
-				//return doAction(actions.getAction(e.getY() < height / 2 ? Actions.TOP_TAP : Actions.BOTTOM_TAP));
-			// -ls;
-			}
-		});
 	}
 	
-	public void setStartBookmark(Bookmark b, String bookmarkName) {
-		if (b != null) {
-			this.bookmarkToRestore = b.getLast(bookmarkName);
-			
-			if (this.bookmarkToRestore == null)
-				return;
-						
-			if (this.bookmarkToRestore.numberOfPages != this.pageSizes.length) {
-				this.bookmarkToRestore = null;
-				return;
-			}
-
-			if (0<this.bookmarkToRestore.page) {
-				this.currentPage = this.bookmarkToRestore.page;
-			}
-		}
-	}
+	// set start book mark(); @2013-07-24;
 		
 	/**
 	 * Handle size change event.
@@ -392,24 +255,7 @@ public class PagesView extends View implements
 		}
 	}
 	
-	public void goToBookmark() {
-
-		if (this.bookmarkToRestore == null || this.bookmarkToRestore.absoluteZoomLevel == 0
-				|| this.bookmarkToRestore.page < 0 
-				|| this.bookmarkToRestore.page >= this.pageSizes.length ) {
-			this.top  = this.height / 2;
-			this.left = this.width / 2;
-		}
-		else {
-			this.zoomLevel = (int)(this.bookmarkToRestore.absoluteZoomLevel / this.scaling0);
-			this.rotation = this.bookmarkToRestore.rotation;
-			Point pos = getPagePositionInDocumentWithZoom(this.bookmarkToRestore.page);
-			this.currentPage = this.bookmarkToRestore.page;
-			this.top = pos.y + this.height / 2;
-			this.left = this.getCurrentPageWidth(this.currentPage)/2 + marginX + this.bookmarkToRestore.offsetX;
-			this.bookmarkToRestore = null;
-		}
-	}
+	// goto book mark(); @2013-07-24;
 	
 	public void setPagesProvider(PagesProvider pagesProvider) {
 		this.pagesProvider = pagesProvider;
@@ -441,21 +287,10 @@ public class PagesView extends View implements
 		this.pagesProvider.setOnImageRenderedListener(this);
 	}
 	
-	/**
-	 * Draw view.
-	 * @param canvas what to draw on
-	 */
 	
 	int prevTop = -1;
 	int prevLeft = -1;
-
-	public void onDraw(Canvas canvas) {
-		if (this.nook2) {
-			N2EpdController.setGL16Mode();
-		}
-		this.drawPages(canvas);
-		if (this.findMode) this.drawFindResults(canvas);
-	}
+	// on draw(); @2013-07-24;
 	
 	/**
 	 * Get current maximum page width by page number taking into account zoom and rotation
@@ -570,6 +405,1043 @@ public class PagesView extends View implements
 		}
 	}
 	
+	// draw pages(), draw bitmap(); @2013-07-24;	
+	// draw find results; @2013-07-24;
+
+	
+
+	/**
+	 * 
+	 * @param event
+	 * @return distance in multitouch event
+	 */
+	private float distance(MotionEvent event) {
+//		double dx = event.getX(0)-event.getX(1);
+//		double dy = event.getY(0)-event.getY(1);
+		float dx = AndroidReflections.getMotionEventX(event, 0) - AndroidReflections.getMotionEventX(event, 1);
+		float dy = AndroidReflections.getMotionEventY(event, 0) - AndroidReflections.getMotionEventY(event, 1);
+		return (float)Math.sqrt(dx*dx+dy*dy);
+	}
+
+
+
+	/**
+	 * Handle touch event coming from Android system.
+	 */
+	public boolean onTouch(View v, MotionEvent event) {
+		this.lastControlsUseMillis = System.currentTimeMillis();
+		if (!gestureDetector.onTouchEvent(event)) {
+			// Log.v(TAG, ""+event.getAction());
+			if (event.getAction() == MotionEvent.ACTION_DOWN) {
+				downX = event.getX();
+				downY = event.getY();
+				lastX = downX;
+				lastY = downY;
+				lockedVertically = verticalScrollLock;
+				lockedHoriz = horizScrollLock;  //+ls @2013-07-24;
+				maxExcursionY = 0;
+				maxExcursionX = 0;
+				scroller = null;
+			}
+	        else if (event.getAction() == MotionEvent.ACTION_POINTER_2_DOWN
+	        		&& AndroidReflections.getMotionEventPointerCount(event) >= 2) {
+	        	float d = distance(event);
+	        	if (d > 20f) {
+		        	this.mtZoomActive = true;
+		        	this.mtZoomValue = 1f;
+		        	this.mtDistanceStart = distance(event);
+		        	this.mtLastDistance = this.mtDistanceStart;
+	        	}
+	        }
+			else if (event.getAction() == MotionEvent.ACTION_MOVE){
+				if (this.mtZoomActive && AndroidReflections.getMotionEventPointerCount(event) >= 2) {
+				// !ls; double points tab move;
+					float d = distance(event);
+					if (d > 20f) {
+						d = .6f * this.mtLastDistance + .4f * d;
+						this.mtLastDistance = d;
+						this.mtZoomValue = d / this.mtDistanceStart;
+						if (this.mtZoomValue < 0.1f)
+							this.mtZoomValue = 0.1f;
+						else if (mtZoomValue > 10f)
+							this.mtZoomValue = 10f;
+
+						ls_invalidate(); //@2013-07-24;
+					}
+				}
+				else {
+				// !ls; single point move;
+					if (lockedVertically && unlocksVerticalLock(event)) 
+						lockedVertically = false;
+					if( lockedHoriz && unlocksHoriz(event))	// +ls @2013-07-24;
+						lockedHoriz = false;
+					
+					float dx = event.getX() - lastX;
+					float dy = event.getY() - lastY;
+					
+					float excursionY = Math.abs(event.getY() - downY);
+					if (excursionY > maxExcursionY)
+						maxExcursionY = excursionY;
+					
+				// +ls @2013-07-24;
+					float excursionX = Math.abs(event.getX() - downX);					
+					if( excursionX > maxExcursionX )
+						maxExcursionX = excursionX;
+					
+					if (lockedVertically)
+						dx = 0;
+					if( lockedHoriz)
+						dy = 0;
+					
+					if( dx !=0 || dy !=0 )
+					{
+						//ls_doScroll((int)-dx, (int)-dy);
+						this.left += (int)-dx;
+						this.top += (int)-dy;
+					
+						ls_invalidate();
+					}
+					
+					lastX = event.getX();
+					lastY = event.getY();
+				}
+			}
+			else if (event.getAction() == MotionEvent.ACTION_UP ||
+					event.getAction() == MotionEvent.ACTION_POINTER_2_UP) {
+				if (this.mtZoomActive) {
+					this.mtDebounce = SystemClock.uptimeMillis();
+					this.mtZoomActive = false;
+					zoom(this.mtZoomValue);
+				}
+			}						
+		}
+		return true;
+	}
+	private boolean unlocksVerticalLock(MotionEvent e) {
+		float dx;
+		float dy;
+		
+		dx = Math.abs(e.getX()-downX);
+		dy = Math.abs(e.getY()-downY);
+		
+		if (dy > 0.25 * dx || maxExcursionY > 0.8 * dx)
+			return false;
+		
+		return dx > width/5 || dx > height/5;
+	}
+	private boolean unlocksHoriz(MotionEvent e) {
+		float dx;
+		float dy;
+		
+		dx = Math.abs(e.getX()-downX);
+		dy = Math.abs(e.getY()-downY);
+		
+		if (dx > 0.25 * dy || maxExcursionX > 0.8 * dy)
+			return false;
+		
+		return dy > width/5 || dy > height/5;
+	}
+	/**
+	 * Handle keyboard events
+	 */
+	public boolean onKey(View v, int keyCode, KeyEvent event) {
+		if (this.pageWithVolume && event.getAction() == KeyEvent.ACTION_UP) {
+			/* repeat is a little too fast sometimes, so trap these on up */
+			switch(keyCode) {
+				case KeyEvent.KEYCODE_VOLUME_UP:
+					volumeUpIsDown = false;
+					return true;
+				case KeyEvent.KEYCODE_VOLUME_DOWN:
+					volumeDownIsDown = false;
+					return true;
+			}
+		}
+		
+		if (event.getAction() == KeyEvent.ACTION_DOWN) {
+			int action = actions.getAction(keyCode);
+			
+			switch (keyCode) {
+			case KeyEvent.KEYCODE_SEARCH:
+				((cx.hell.android.pdfviewpro.OpenFileActivity)activity).showFindDialog();
+				return true;
+			case KeyEvent.KEYCODE_VOLUME_DOWN:
+				if (action == Actions.ACTION_NONE)
+					return false;
+				if (!volumeDownIsDown) {
+					/* Disable key repeat as on some devices the keys are a little too
+					 * sticky for key repeat to work well.  TODO: Maybe key repeat disabling
+					 * should be an option?  
+					 */
+					doAction(action);
+				}
+				volumeDownIsDown = true;
+				return true;
+			case KeyEvent.KEYCODE_VOLUME_UP:
+				if (action == Actions.ACTION_NONE)
+					return false;
+				if (!this.pageWithVolume)
+					return false;
+				if (!volumeUpIsDown) {
+					doAction(action);
+				}
+				volumeUpIsDown = true;
+				return true;
+			case KeyEvent.KEYCODE_DPAD_UP:
+			case KeyEvent.KEYCODE_DPAD_DOWN:
+			case KeyEvent.KEYCODE_DPAD_LEFT:
+			case KeyEvent.KEYCODE_DPAD_RIGHT:
+			case 92:
+			case 93:
+			case 94:
+			case 95:
+				doAction(action);
+				return true;
+				
+			case KeyEvent.KEYCODE_DEL:
+			case KeyEvent.KEYCODE_K:
+				doAction(Actions.ACTION_SCREEN_UP);
+				return true;
+			case KeyEvent.KEYCODE_SPACE:
+			case KeyEvent.KEYCODE_J:
+				doAction(Actions.ACTION_SCREEN_DOWN);
+				return true;
+			case KeyEvent.KEYCODE_H:
+				this.left -= this.getWidth() / 4;
+				ls_invalidate();
+				return true;
+			case KeyEvent.KEYCODE_L:
+				this.left += this.getWidth() / 4;
+				ls_invalidate();
+				return true;
+			case KeyEvent.KEYCODE_O:
+				zoom(1f/1.1f);
+				return true;
+			case KeyEvent.KEYCODE_P:
+				zoom(1.1f);
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	/**
+	 * Test if specified rectangles intersect with each other.
+	 * Uses Androids standard Rect class.
+	 */
+	private boolean rectsintersect(
+			int r1x0, int r1y0, int r1x1, int r1y1,
+			int r2x0, int r2y0, int r2x1, int r2y1) {
+		// r1.set(r1x0, r1y0, r1x1, r1y1);
+		// return r1.intersects(r2x0, r2y0, r2x1, r2y1);
+		// temporary "asserts"
+//		if (r1x0 > r1x1) throw new RuntimeException("invalid rect");
+//		if (r2x0 > r2x1) throw new RuntimeException("invalid rect");
+//		if (r1y0 > r1y1) throw new RuntimeException("invalid rect");
+//		if (r2y0 > r2y1) throw new RuntimeException("invalid rect");
+		return !(
+					r1x1 < r2x0 ||		// r1 left of r2
+					r1x0 > r2x1 ||		// r1 right of r2
+					r1y1 < r2y0 ||		// r1 above r2
+					r1y0 > r2y1			// r1 below r2
+				);
+	}
+	
+	// render;		
+	
+	/**
+	 * Rotate pages.
+	 * Updates rotation variable, then invalidates view.
+	 * @param rotation rotation
+	 */
+	synchronized public void rotate(int rotation) {
+		this.rotation = (this.rotation + rotation) % 4;
+		ls_invalidate();
+	}	
+	
+	/**
+	 * Get the current page number
+	 * 
+	 * @return the current page. 0-based
+	 */
+	public int getCurrentPage() {
+		return currentPage;
+	}
+	
+	/**
+	 * Get the current zoom level
+	 * 
+	 * @return the current zoom level
+	 */
+	public int getCurrentAbsoluteZoom() {
+		return zoomLevel;
+	}
+	
+	/**
+	 * Get the current rotation
+	 * 
+	 * @return the current rotation
+	 */
+	public int getPageRotation() {
+		return rotation;
+	}
+	
+	/**
+	 * Get page count.
+	 */
+	public int getPageCount() {
+		return this.pageSizes.length;
+	}
+	
+	// set find results(); get find results();
+	
+	private void doFling(float vx, float vy) {
+		float avx = vx > 0 ? vx : -vx;
+		float avy = vy > 0 ? vy : -vy;
+		
+		if (avx < .25 * avy) {
+			vx = 0;
+		}
+		else if (avy < .25 * avx) {
+			vy = 0;
+		}
+		
+		int marginX = (int)getCurrentMarginX();
+		int marginY = (int)getCurrentMarginY();
+		int minx = this.width/2 + getLowerBound(this.width, marginX, 
+				getCurrentMaxPageWidth());
+		int maxx = this.width/2 + getUpperBound(this.width, marginX, 
+				getCurrentMaxPageWidth());
+		int miny = this.height/2 + getLowerBound(this.height, marginY,
+				  getCurrentDocumentHeight());
+		int maxy = this.height/2 + getUpperBound(this.height, marginY,
+				  getCurrentDocumentHeight());
+
+		this.scroller = new Scroller(activity);
+		this.scroller.fling(this.left, this.top, 
+				(int)-vx, (int)-vy,
+				minx, maxx,
+				miny, maxy);
+		ls_invalidate();
+	}
+// +ls;
+	public void ls_doScroll(int dx, int dy) {
+		this.left += dx;
+		this.top += dy;
+		ls_invalidate();
+	}
+// -ls;
+	
+	public void setRotation(int rotation) {
+		if (this.rotation == rotation)
+			return;
+		this.rotation = rotation;
+		Log.d(TAG, "rotation changed to " + this.rotation);
+		ls_invalidate();
+	}
+	public void setVerticalScrollLock(boolean verticalScrollLock) {
+		this.verticalScrollLock = verticalScrollLock;
+	}	
+	public void setColorMode(int colorMode) {
+		this.colorMode = colorMode;
+		ls_invalidate();
+	}
+	public void setZoomIncrement(float step) {
+		this.step = step;
+	}
+	
+	public void setPageWithVolume(boolean pageWithVolume) {
+		this.pageWithVolume = pageWithVolume;
+	}
+	// get good title sizes();
+	// get upper/lower bound();	
+	// adjust position();
+
+	public void setSideMargins(int margin) {
+		this.marginX = margin;
+	}
+	
+	public void setTopMargin(int margin) {
+		int delta = margin - this.marginY;
+		top += this.currentPage * delta; 
+		this.marginY = margin;
+	}
+	
+	public void setDoubleTap(int doubleTapAction) {
+		this.doubleTapAction = doubleTapAction;
+	}
+	
+	public void setEink(boolean eink) {
+		this.eink = eink;
+	}
+
+	public void setNook2(boolean nook2) {
+		this.nook2 = nook2;
+	}
+	
+	public void setShowZoomOnScroll(boolean showZoomOnScroll) {
+		this.showZoomOnScroll = showZoomOnScroll;
+	}
+
+	public void setZoomLayout(LinearLayout zoomLayout) {
+		this.zoomLayout = zoomLayout;
+	}
+
+//------2013-07-24--------------------------------------------------
+	//=== @2013-07-24, action operation; ===
+	public boolean doAction(int action) {
+		float zoomValue = Actions.getZoomValue(action);
+		if (0f < zoomValue) {
+			zoom(zoomValue);
+			return true;
+		}
+		switch(action) {
+		case Actions.ACTION_FULL_PAGE_DOWN:
+			scrollToPage(currentPage + 1, false);
+			return true;
+		case Actions.ACTION_FULL_PAGE_UP:
+			scrollToPage(currentPage - 1, false);
+			return true;
+		case Actions.ACTION_PREV_PAGE:
+			action_updown( true);
+			return true;
+		case Actions.ACTION_NEXT_PAGE:
+			action_updown( false );
+			return true;
+		case Actions.ACTION_SCREEN_DOWN:
+			action_updown( true );
+			//this.invalidate();
+			return true;
+		case Actions.ACTION_SCREEN_UP:
+			action_updown( false );
+			return true;
+		default:
+			return false;
+		}
+	}
+	
+	private void action_updown( boolean updown ) //+ls;
+	{
+		if( ispagetap )
+			action_page( updown );
+		else
+			action_screen( updown );
+	}
+	public void ls_setupdowntap()//+ls;
+    {
+    	if( ispagetap )
+    		ispagetap = false;
+    	else
+    		ispagetap = true;
+    }
+	
+	public void setActions(Actions actions) {
+		this.actions = actions;
+	}
+
+	//=== @2013-07-24; page operation; ===
+	/* // @2013-07-24;
+	private void gotoPage(int page) {
+		int curpage = currentPage;//getCurrentPage();
+		int gopage = curpage + page;	// ls, 2013-02-06;
+		//if( gopage < 0 ) gopage = 0;
+		
+    	//Log.i(TAG, "rewind to page " + page);
+    	//if (this.pagesView != null) {
+    	scrollToPage(gopage, true);
+        //    showAnimated(true);
+    	//}
+    }
+	*/
+	// 2013-07-24, called by action_updown;
+	private void action_page( boolean down )
+	{
+		OpenFileActivity openFileActivity = (OpenFileActivity)activity;
+		if( down )
+			openFileActivity.ls_pagerelative( 1 );
+			//gotoPage(1);//scrollToPage(currentPage + 1 +1);
+		else
+			openFileActivity.ls_pagerelative( -1 );
+			//gotoPage(-1);//scrollToPage(currentPage - 1 +1);
+		
+	}
+	synchronized public void scrollToPage(int page) {
+		scrollToPage(page, true);
+	}
+	/**
+	 * Move current viewport over n-th page.
+	 * Page is 0-based.
+	 * @param page 0-based page number
+	 */
+	synchronized public void scrollToPage(int page, boolean positionAtTop) {
+		float top;
+		
+		if (page < 0) page = 0;
+		else if (page >= this.getPageCount()) page = this.getPageCount() - 1;
+		
+		if (positionAtTop) {
+			top = this.height/2 + pagePosition(page);
+		}
+		else {
+			top = this.top - pagePosition(currentPage) + pagePosition(page);
+		}
+
+		this.top = (int)top;
+		this.currentPage = page;
+		ls_invalidate();
+	}
+
+	public float pagePosition(int page) {
+		float top = 0;
+		
+		for(int i = 0; i < page; ++i) {
+			top += this.getCurrentPageHeight(i);
+		}
+		
+		if (page > 0)
+			top += scale((float)marginY) * (float)(page);
+		
+		return top;		
+	}
+
+	//=== @2013-07-24, screen operation; ===
+	private void action_screen( boolean down )
+	{
+		if( down )
+		{
+			this.top += this.getHeight() - 80;//16;
+		}
+		else
+		{
+		// +ls; 2013-02-06;
+			this.top -= this.getHeight() - 80;//16; //
+		// -ls;			
+		}
+		ls_invalidate();
+	}
+
+	//===@2013-07-24, zoom operation; ===
+	// +ls; 2013-02-06;
+	public void doActionZoom( int n )
+	{		
+		float zoomvalue = 1f + n * 0.01f;
+		
+		if(0f < zoomvalue )
+		{
+			zoom( zoomvalue );
+		}
+	}
+	// -ls;
+	//	 * Zoom down one level
+	public void zoom(float value) {
+		this.zoomLevel *= value;
+		this.left *= value;
+		this.top *= value;
+		Log.d(TAG, "zoom level changed to " + this.zoomLevel);
+		zoomToRestore = 0;
+		ls_invalidate();		
+	}
+	public void zoomWidth() {
+		int page = currentPage < 0 ? 0 : currentPage;
+		int pageWidth = getCurrentPageWidth(page);
+		if (pageWidth <= 0) {
+			throw new RuntimeException("invalid page " + page + " with: " + pageWidth); 
+		}
+		this.top = (this.top - this.height / 2) * this.width / pageWidth + this.height / 2;
+		this.zoomLevel = this.zoomLevel * (this.width - 2*marginX) / pageWidth;
+		this.left = (int) (this.width/2);
+		zoomToRestore = 0;
+		ls_invalidate();		
+	}
+	public void zoomFit() {
+		int page = currentPage < 0 ? 0 : currentPage;
+		int z1 = this.zoomLevel * this.width / getCurrentPageWidth(page);
+		int z2 = (int)(this.zoomLevel * this.height / getCurrentPageHeight(page));
+		this.zoomLevel = z2 < z1 ? z2 : z1;
+		Point pos = getPagePositionInDocumentWithZoom(page);
+		this.left = this.width/2 + pos.x;
+		this.top = this.height/2 + pos.y;
+		zoomToRestore = 0;
+		ls_invalidate();		
+	}
+	public void setZoomLevel(int zoomLevel) {
+		if (this.zoomLevel == zoomLevel)
+			return;
+		this.zoomLevel = zoomLevel;
+		Log.d(TAG, "zoom level changed to " + this.zoomLevel);
+		zoomToRestore = 0;
+		ls_invalidate();
+	}
+
+ //=== @2013-07-24, bookmark; ===
+	public BookmarkEntry toBookmarkEntry() {
+		return new BookmarkEntry(this.pageSizes.length, 
+				this.currentPage, scaling0*zoomLevel, rotation, 
+				this.left - this.getCurrentPageWidth(this.currentPage)/2 - marginX);
+	}
+	
+	public void setStartBookmark(Bookmark b, String bookmarkName) {
+		if (b != null) {
+			this.bookmarkToRestore = b.getLast(bookmarkName);
+			
+			if (this.bookmarkToRestore == null)
+				return;
+						
+			if (this.bookmarkToRestore.numberOfPages != this.pageSizes.length) {
+				this.bookmarkToRestore = null;
+				return;
+			}
+
+			if (0<this.bookmarkToRestore.page) {
+				this.currentPage = this.bookmarkToRestore.page;
+			}
+		}
+	}
+
+	public void goToBookmark() {
+
+		if (this.bookmarkToRestore == null || this.bookmarkToRestore.absoluteZoomLevel == 0
+				|| this.bookmarkToRestore.page < 0 
+				|| this.bookmarkToRestore.page >= this.pageSizes.length ) {
+			this.top  = this.height / 2;
+			this.left = this.width / 2;
+		}
+		else {
+			this.zoomLevel = (int)(this.bookmarkToRestore.absoluteZoomLevel / this.scaling0);
+			this.rotation = this.bookmarkToRestore.rotation;
+			Point pos = getPagePositionInDocumentWithZoom(this.bookmarkToRestore.page);
+			this.currentPage = this.bookmarkToRestore.page;
+			this.top = pos.y + this.height / 2;
+			this.left = this.getCurrentPageWidth(this.currentPage)/2 + marginX + this.bookmarkToRestore.offsetX;
+			this.bookmarkToRestore = null;
+		}
+	}
+
+//=== @2013-07-24, title size ===
+	private void getGoodTileSizes(int[] sizes, int pageWidth, int pageHeight) {
+		sizes[0] = getGoodTileSize(pageWidth, MIN_TILE_WIDTH, MAX_TILE_WIDTH);		
+		sizes[1] = getGoodTileSize(pageHeight, MIN_TILE_HEIGHT, MAX_TILE_PIXELS / sizes[0]); 
+	}
+	
+	private int getGoodTileSize(int pageSize, int minSize, int maxSize) {
+		if (pageSize <= 2)
+			return 2;
+		if (pageSize <= maxSize)
+			return pageSize;
+		int numInPageSize = (pageSize + maxSize - 1) / maxSize;
+		int proposedSize = (pageSize + numInPageSize - 1) / numInPageSize;
+		if (proposedSize < minSize)
+			return minSize;
+		else
+			return proposedSize;
+	}
+	//=== @2013-07-24, position, bound ===
+		private int adjustPosition(int pos, int screenDim, int margin, int docDim) {
+		int min = getLowerBound(screenDim, margin, docDim);
+		int max = getUpperBound(screenDim, margin, docDim);
+		
+		if (pos < min)
+			return min;
+		else if (max < pos)
+			return max;
+		else
+			return pos;
+	}
+
+	/* Get the upper and lower bounds for the viewpoint.  The document itself is
+	 * drawn from margin to margin+docDim.   
+	 */
+	private int getLowerBound(int screenDim, int margin, int docDim) {
+		if (docDim <= screenDim) {
+			/* all pages can and do fit */
+			return margin + docDim - screenDim;
+		}
+		else {
+			/* document is too wide/tall to fit */
+			return 0; 
+		}
+	}
+	
+	private int getUpperBound(int screenDim, int margin, int docDim) {
+		if (docDim <= screenDim) {
+			/* all pages can and do fit */
+			return margin;
+		}
+		else {
+			/* document is too wide/tall to fit */
+			return 2 * margin + docDim - screenDim;
+		}
+	}
+
+	//=== @2013-07-24,11:14; find operation; ===
+	public void setFindResults(List<FindResult> results) {
+		this.findResults = results;
+	}
+	public List<FindResult> getFindResults() {
+		return this.findResults;
+	}
+	synchronized public void setFindMode(boolean m) {
+		if (this.findMode != m) {
+			this.findMode = m;
+			if (!m) {
+				this.findResults = null;
+			}
+		}
+	}
+	public boolean getFindMode() {
+		return this.findMode;
+	}
+
+	/**
+	 * Draw find results.
+	 * TODO prettier icons
+	 * TODO message if nothing was found
+	 * @param canvas drawing target
+	 */
+	private void drawFindResults(Canvas canvas) {
+		if (!this.findMode) throw new RuntimeException("drawFindResults but not in find results mode");
+		if (this.findResults == null || this.findResults.isEmpty()) {
+			Log.w(TAG, "nothing found");
+			return;
+		}
+		for(FindResult findResult: this.findResults) {
+			if (findResult.markers == null || findResult.markers.isEmpty())
+				throw new RuntimeException("illegal FindResult: find result must have at least one marker");
+			Iterator<Rect> i = findResult.markers.iterator();
+			Rect r = null;
+			Point pagePosition = this.getPagePositionOnScreen(findResult.page);
+			float pagex = pagePosition.x;
+			float pagey = pagePosition.y;
+			float z = (this.scaling0 * (float)this.zoomLevel * 0.001f);
+			while(i.hasNext()) {
+				int marg = 5;
+				int offs = 2;
+				r = i.next();
+				canvas.drawRect(
+						r.left * z + pagex - marg + offs, r.top * z + pagey - marg + offs,
+						r.right * z + pagex + marg + offs, r.bottom * z + pagey + marg + offs,
+						this.findResultsPaint1);
+				canvas.drawRect(
+						r.left * z + pagex - marg, r.top * z + pagey - marg,
+						r.right * z + pagex + marg, r.bottom * z + pagey + marg,
+						this.findResultsPaint2);
+//				canvas.drawLine(
+//						r.left * z + pagex, r.top * z + pagey,
+//						r.left * z + pagex, r.bottom * z + pagey,
+//						this.findResultsPaint);
+//				canvas.drawLine(
+//						r.left * z + pagex, r.bottom * z + pagey,
+//						r.right * z + pagex, r.bottom * z + pagey,
+//						this.findResultsPaint);
+//				canvas.drawLine(
+//						r.right * z + pagex, r.bottom * z + pagey,
+//						r.right * z + pagex, r.top * z + pagey,
+//						this.findResultsPaint);
+//			canvas.drawRect(
+//					r.left * z + pagex,
+//					r.top * z + pagey,
+//					r.right * z + pagex,
+//					r.bottom * z + pagey,
+//					this.findResultsPaint);
+//			Log.d(TAG, "marker lands on: " +
+//					(r.left * z + pagex) + ", " +
+//					(r.top * z + pagey) + ", " + 
+//					(r.right * z + pagex) + ", " +
+//					(r.bottom * z + pagey) + ", ");
+			}
+		}
+	}
+
+//	/**
+//	 * Ask pages provider to focus on next find result.
+//	 * @param forward direction of search - true for forward, false for backward
+//	 */
+//	public void findNext(boolean forward) {
+//		this.pagesProvider.findNext(forward);
+//		this.scrollToFindResult();
+//		this.invalidate();
+//	}
+
+	/**
+	 * Move viewport position to find result (if any).
+	 * Does not call invalidate().
+	 */
+	public void scrollToFindResult(int n) {
+		if (this.findResults == null || this.findResults.isEmpty()) return;
+		Rect center = new Rect();
+		FindResult findResult = this.findResults.get(n);
+
+		for(Rect marker: findResult.markers) {
+			center.union(marker);
+		}
+
+		float x = scale((center.left + center.right) / 2);
+		float y = pagePosition(findResult.page) + scale((center.top + center.bottom) / 2);
+		
+		this.left = (int)(x + this.getCurrentMarginX());
+		this.top = (int)(y);
+	}
+
+	//=== @2013-07-24, render, images operation ===
+	/**
+	 * Used as a callback from pdf rendering code.
+	 * TODO: only invalidate what needs to be painted, not the whole view
+	 */
+	public void onImagesRendered(Map<Tile,Bitmap> renderedTiles) {
+		Rect rect = new Rect(); /* TODO: move out of onImagesRendered */
+
+		int viewx0 = left - width/2;
+		int viewy0 = top - height/2;
+		
+		int pageCount = this.pageSizes.length;
+		float currentMarginX = this.getCurrentMarginX();
+		float currentMarginY = this.getCurrentMarginY();
+		
+		viewx0 = adjustPosition(viewx0, width, (int)currentMarginX, 
+				getCurrentMaxPageWidth());
+		viewy0 = adjustPosition(viewy0, height, (int)currentMarginY,
+				(int)getCurrentDocumentHeight());
+		
+		float currpageoff = currentMarginY;
+		float renderAhead = this.pagesProvider.getRenderAhead();
+
+		float pagex0;
+		float pagex1;
+		float pagey0 = 0;
+		float pagey1;
+		float x;
+		float y;
+		int pageWidth;
+		int pageHeight;
+		
+		for(int i = 0; i < pageCount; ++i) {
+			// is page i visible?
+
+			pageWidth = this.getCurrentPageWidth(i);
+			pageHeight = (int) this.getCurrentPageHeight(i);
+			
+			pagex0 = currentMarginX;
+			pagex1 = (int)(currentMarginX + pageWidth);
+			pagey0 = currpageoff;
+			pagey1 = (int)(currpageoff + pageHeight);
+			
+			if (rectsintersect(
+						(int)pagex0, (int)pagey0, (int)pagex1, (int)pagey1, // page rect in doc
+						viewx0, viewy0, viewx0 + this.width, 
+						viewy0 + this.height  
+					))
+			{
+				x = pagex0 - viewx0;
+				y = pagey0 - viewy0;
+				
+				for (Tile tile: renderedTiles.keySet()) {
+					if (tile.getPage() == i) {
+						Bitmap b = renderedTiles.get(tile); 
+						
+						rect.left = (int)(x + tile.getX());
+						rect.top = (int)(y + tile.getY());
+						rect.right = rect.left + b.getWidth();
+						rect.bottom = rect.top + b.getHeight();	
+					
+						if (rect.intersects(0, 0, this.width, (int)(renderAhead*this.height))) {
+							Log.v(TAG, "New bitmap forces redraw");
+							ls_postInvalidate();
+							return;
+						}
+					}
+				}
+				
+			}
+			currpageoff += currentMarginY + this.getCurrentPageHeight(i);
+		}
+		Log.v(TAG, "New bitmap does not require redraw");
+	}
+	
+	/**
+	 * Handle rendering exception.
+	 * Show error message and then quit parent activity.
+	 * TODO: find a proper way to finish an activity when something bad happens in view.
+	 */
+	public void onRenderingException(RenderingException reason) {
+		final Activity activity = this.activity;
+		final String message = reason.getMessage();
+		this.post(new Runnable() {
+			public void run() {
+    			AlertDialog errorMessageDialog = new AlertDialog.Builder(activity)
+				.setTitle("Error")
+				.setMessage(message)
+				.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int id) {
+						activity.finish();
+					}
+				})
+				.setOnCancelListener(new DialogInterface.OnCancelListener() {
+					public void onCancel(DialogInterface dialog) {
+						activity.finish();
+					}
+				})
+				.create();
+    			errorMessageDialog.show();
+			}
+		});
+	}
+	
+	//=== @2013-07-24, gesture operation; ===
+	private void ls_createGestureDetector()
+	{
+		this.gestureDetector = new GestureDetector(activity,
+		new GestureDetector.OnGestureListener() 
+		{
+					public boolean onDown(MotionEvent e) {
+						return false;
+					}
+
+					public boolean onFling(MotionEvent e1, MotionEvent e2,
+							float velocityX, float velocityY) {
+
+						if (lockedVertically)
+							velocityX = 0;
+
+						doFling(velocityX, velocityY);
+						return true;
+					}
+
+					public void onLongPress(MotionEvent e) {
+					}
+
+					public boolean onScroll(MotionEvent e1, MotionEvent e2,
+							float distanceX, float distanceY) {
+						return false;
+					}
+
+					public void onShowPress(MotionEvent e) {
+					}
+
+					public boolean onSingleTapUp(MotionEvent e) {
+						return false;
+					}
+		});
+	}
+	private void ls_setGestureDetector()
+	{
+		final OpenFileActivity openFileActivity = (OpenFileActivity)activity;
+		final PagesView pagesView = this;
+
+		// !ls; double click;		
+		gestureDetector.setOnDoubleTapListener(
+		new OnDoubleTapListener() 
+		{
+			public boolean onDoubleTap(MotionEvent e) 
+			{
+				switch(doubleTapAction) {
+				case Options.DOUBLE_TAP_ZOOM_IN_OUT:
+					if (zoomToRestore != 0) {
+						left = leftToRestore;
+						top = top * zoomToRestore / zoomLevel;
+						zoomLevel = zoomToRestore;
+						ls_invalidate();
+						zoomToRestore = 0;
+					}
+					else {
+						int oldLeft = left;
+						int oldZoom = zoomLevel;
+						left += e.getX() - width/2;
+						top += e.getY() - height/2;
+						zoom(2f);
+						zoomToRestore = oldZoom;
+						leftToRestore = oldLeft;
+					}
+					return true;
+				case Options.DOUBLE_TAP_ZOOM:
+					left += e.getX() - width/2;
+					top += e.getY() - height/2;
+					zoom(2f);
+					return true;
+				default:
+					return false;
+				}
+			}
+
+			public boolean onDoubleTapEvent(MotionEvent e) {
+				return false;
+			}
+			// !ls; single tap;
+			public boolean onSingleTapConfirmed(MotionEvent e) 
+			{
+				//final Activity activity = this.activity;
+				
+    			if (mtDebounce + 600 > SystemClock.uptimeMillis()) 
+    				return false;				
+				
+			//	if (!showZoomOnScroll) {
+			//		openFileActivity.showZoom();
+			//		ls_invalidate(); // @2013-07-24;pagesView.invalidate();
+			//	}
+				
+				// check if in the zoomlayout area; if true, then ignore;
+				if (zoomLayout != null) {
+					Rect r = new Rect();
+					
+					zoomLayout.getDrawingRect(r);
+					
+					r.set(r.left - 5, r.top - 5, r.right + 5, r.bottom + 5);
+					
+					if (r.contains((int)e.getX(), (int)e.getY()))
+						return false;
+				}
+				
+				// +ls; 2013-02-06; 22:55;
+				// <ls; 2013-07-14; 9:22;
+				
+				// ls bar tap detection;
+				Rect leftbottomcon = new Rect();
+				leftbottomcon.set(width/3, 0, width*2/3, 100); 		// 2013-07-14; 0, height - 100, 100, height);
+				if( leftbottomcon.contains((int)e.getX(), (int)e.getY()))
+				{
+					openFileActivity.ls_onShowHideZoom();
+					return true;
+				}
+				
+			// top tap detection;
+				Rect upleft 	= new Rect();
+				Rect upright 	= new Rect();
+				// left, top, right, bottom;
+				upleft.set(0, 0, width/3, height/2 ); 				// 2013-07-14; height / 4, 100, height / 2);
+				upright.set(width*2/3, 0, width, height/2);			// 2013-07-14;width - 100, height/4, width, height/2);
+				if( upleft.contains((int)e.getX(), (int)e.getY())   ||  upright.contains((int)e.getX(), (int)e.getY()) )
+					return doAction(actions.getAction(Actions.TOP_TAP));
+				
+			// bottom tap detection;
+				Rect downleft 	= new Rect();
+				Rect downright 	= new Rect();
+				downleft.set(0, height/2, width/3, height); 		// 2013-07-14; height/2, 100, height*3/4);
+				downright.set(width*2/3, height/2, width, height); 	// 2013-07-14; width-100, height/2, width, height*3/4);
+				if( downleft.contains((int)e.getX(), (int)e.getY()) || downright.contains((int)e.getX(), (int)e.getY()) )
+					return doAction(actions.getAction(Actions.BOTTOM_TAP));
+				return false;
+				//return doAction(actions.getAction(e.getY() < height / 2 ? Actions.TOP_TAP : Actions.BOTTOM_TAP));
+			// -ls;
+				
+			}
+		});
+	}
+
+	//=== @2013-07-24,11:40; draw operation ===
+	private void ls_postInvalidate()
+	{
+		postInvalidate();
+	}
+	public void ls_invalidate()
+	{
+		invalidate();
+	}
+	public void onDraw(Canvas canvas) {
+		if (this.nook2) {
+			N2EpdController.setGL16Mode();
+		}
+		this.drawPages(canvas);
+		if (this.findMode) this.drawFindResults(canvas);
+	}
+
 	/**
 	 * Draw pages.
 	 * Also collect info what's visible and push this info to page renderer.
@@ -746,419 +1618,11 @@ public class PagesView extends View implements
 		else {
 			canvas.drawBitmap(b, src, dst, null);
 		}
-	}
-
-	/**
-	 * Draw find results.
-	 * TODO prettier icons
-	 * TODO message if nothing was found
-	 * @param canvas drawing target
-	 */
-	private void drawFindResults(Canvas canvas) {
-		if (!this.findMode) throw new RuntimeException("drawFindResults but not in find results mode");
-		if (this.findResults == null || this.findResults.isEmpty()) {
-			Log.w(TAG, "nothing found");
-			return;
-		}
-		for(FindResult findResult: this.findResults) {
-			if (findResult.markers == null || findResult.markers.isEmpty())
-				throw new RuntimeException("illegal FindResult: find result must have at least one marker");
-			Iterator<Rect> i = findResult.markers.iterator();
-			Rect r = null;
-			Point pagePosition = this.getPagePositionOnScreen(findResult.page);
-			float pagex = pagePosition.x;
-			float pagey = pagePosition.y;
-			float z = (this.scaling0 * (float)this.zoomLevel * 0.001f);
-			while(i.hasNext()) {
-				int marg = 5;
-				int offs = 2;
-				r = i.next();
-				canvas.drawRect(
-						r.left * z + pagex - marg + offs, r.top * z + pagey - marg + offs,
-						r.right * z + pagex + marg + offs, r.bottom * z + pagey + marg + offs,
-						this.findResultsPaint1);
-				canvas.drawRect(
-						r.left * z + pagex - marg, r.top * z + pagey - marg,
-						r.right * z + pagex + marg, r.bottom * z + pagey + marg,
-						this.findResultsPaint2);
-//				canvas.drawLine(
-//						r.left * z + pagex, r.top * z + pagey,
-//						r.left * z + pagex, r.bottom * z + pagey,
-//						this.findResultsPaint);
-//				canvas.drawLine(
-//						r.left * z + pagex, r.bottom * z + pagey,
-//						r.right * z + pagex, r.bottom * z + pagey,
-//						this.findResultsPaint);
-//				canvas.drawLine(
-//						r.right * z + pagex, r.bottom * z + pagey,
-//						r.right * z + pagex, r.top * z + pagey,
-//						this.findResultsPaint);
-//			canvas.drawRect(
-//					r.left * z + pagex,
-//					r.top * z + pagey,
-//					r.right * z + pagex,
-//					r.bottom * z + pagey,
-//					this.findResultsPaint);
-//			Log.d(TAG, "marker lands on: " +
-//					(r.left * z + pagex) + ", " +
-//					(r.top * z + pagey) + ", " + 
-//					(r.right * z + pagex) + ", " +
-//					(r.bottom * z + pagey) + ", ");
-			}
-		}
-	}
-
-	private boolean unlocksVerticalLock(MotionEvent e) {
-		float dx;
-		float dy;
-		
-		dx = Math.abs(e.getX()-downX);
-		dy = Math.abs(e.getY()-downY);
-		
-		if (dy > 0.25 * dx || maxExcursionY > 0.8 * dx)
-			return false;
-		
-		return dx > width/5 || dx > height/5;
-	}
-	
-
-	/**
-	 * 
-	 * @param event
-	 * @return distance in multitouch event
-	 */
-	private float distance(MotionEvent event) {
-//		double dx = event.getX(0)-event.getX(1);
-//		double dy = event.getY(0)-event.getY(1);
-		float dx = AndroidReflections.getMotionEventX(event, 0) - AndroidReflections.getMotionEventX(event, 1);
-		float dy = AndroidReflections.getMotionEventY(event, 0) - AndroidReflections.getMotionEventY(event, 1);
-		return (float)Math.sqrt(dx*dx+dy*dy);
-	}
+	}	
 
 
-
-	/**
-	 * Handle touch event coming from Android system.
-	 */
-	public boolean onTouch(View v, MotionEvent event) {
-		this.lastControlsUseMillis = System.currentTimeMillis();
-		if (!gestureDetector.onTouchEvent(event)) {
-			// Log.v(TAG, ""+event.getAction());
-			if (event.getAction() == MotionEvent.ACTION_DOWN) {
-				downX = event.getX();
-				downY = event.getY();
-				lastX = downX;
-				lastY = downY;
-				lockedVertically = verticalScrollLock;
-				maxExcursionY = 0;
-				scroller = null;
-			}
-	        else if (event.getAction() == MotionEvent.ACTION_POINTER_2_DOWN
-	        		&& AndroidReflections.getMotionEventPointerCount(event) >= 2) {
-	        	float d = distance(event);
-	        	if (d > 20f) {
-		        	this.mtZoomActive = true;
-		        	this.mtZoomValue = 1f;
-		        	this.mtDistanceStart = distance(event);
-		        	this.mtLastDistance = this.mtDistanceStart;
-	        	}
-	        }
-			else if (event.getAction() == MotionEvent.ACTION_MOVE){
-				if (this.mtZoomActive && AndroidReflections.getMotionEventPointerCount(event) >= 2) {
-				// !ls; double points tab move;
-					float d = distance(event);
-					if (d > 20f) {
-						d = .6f * this.mtLastDistance + .4f * d;
-						this.mtLastDistance = d;
-						this.mtZoomValue = d / this.mtDistanceStart;
-						if (this.mtZoomValue < 0.1f)
-							this.mtZoomValue = 0.1f;
-						else if (mtZoomValue > 10f)
-							this.mtZoomValue = 10f;
-						invalidate();
-					}
-				}
-				else {
-				// !ls; single point move;
-					if (lockedVertically && unlocksVerticalLock(event)) 
-						lockedVertically = false;
-					
-					float dx = event.getX() - lastX;
-					float dy = event.getY() - lastY;
-					
-					float excursionY = Math.abs(event.getY() - downY);
-	
-					if (excursionY > maxExcursionY)
-						maxExcursionY = excursionY;
-					
-					if (lockedVertically)
-						dx = 0;
-					
-					doScroll((int)-dx, (int)-dy);
-					
-					lastX = event.getX();
-					lastY = event.getY();
-				}
-			}
-			else if (event.getAction() == MotionEvent.ACTION_UP ||
-					event.getAction() == MotionEvent.ACTION_POINTER_2_UP) {
-				if (this.mtZoomActive) {
-					this.mtDebounce = SystemClock.uptimeMillis();
-					this.mtZoomActive = false;
-					zoom(this.mtZoomValue);
-				}
-			}						
-		}
-		return true;
-	}
-	
-	/**
-	 * Handle keyboard events
-	 */
-	public boolean onKey(View v, int keyCode, KeyEvent event) {
-		if (this.pageWithVolume && event.getAction() == KeyEvent.ACTION_UP) {
-			/* repeat is a little too fast sometimes, so trap these on up */
-			switch(keyCode) {
-				case KeyEvent.KEYCODE_VOLUME_UP:
-					volumeUpIsDown = false;
-					return true;
-				case KeyEvent.KEYCODE_VOLUME_DOWN:
-					volumeDownIsDown = false;
-					return true;
-			}
-		}
-		
-		if (event.getAction() == KeyEvent.ACTION_DOWN) {
-			int action = actions.getAction(keyCode);
-			
-			switch (keyCode) {
-			case KeyEvent.KEYCODE_SEARCH:
-				((cx.hell.android.pdfviewpro.OpenFileActivity)activity).showFindDialog();
-				return true;
-			case KeyEvent.KEYCODE_VOLUME_DOWN:
-				if (action == Actions.ACTION_NONE)
-					return false;
-				if (!volumeDownIsDown) {
-					/* Disable key repeat as on some devices the keys are a little too
-					 * sticky for key repeat to work well.  TODO: Maybe key repeat disabling
-					 * should be an option?  
-					 */
-					doAction(action);
-				}
-				volumeDownIsDown = true;
-				return true;
-			case KeyEvent.KEYCODE_VOLUME_UP:
-				if (action == Actions.ACTION_NONE)
-					return false;
-				if (!this.pageWithVolume)
-					return false;
-				if (!volumeUpIsDown) {
-					doAction(action);
-				}
-				volumeUpIsDown = true;
-				return true;
-			case KeyEvent.KEYCODE_DPAD_UP:
-			case KeyEvent.KEYCODE_DPAD_DOWN:
-			case KeyEvent.KEYCODE_DPAD_LEFT:
-			case KeyEvent.KEYCODE_DPAD_RIGHT:
-			case 92:
-			case 93:
-			case 94:
-			case 95:
-				doAction(action);
-				return true;
-				
-			case KeyEvent.KEYCODE_DEL:
-			case KeyEvent.KEYCODE_K:
-				doAction(Actions.ACTION_SCREEN_UP);
-				return true;
-			case KeyEvent.KEYCODE_SPACE:
-			case KeyEvent.KEYCODE_J:
-				doAction(Actions.ACTION_SCREEN_DOWN);
-				return true;
-			case KeyEvent.KEYCODE_H:
-				this.left -= this.getWidth() / 4;
-				this.invalidate();
-				return true;
-			case KeyEvent.KEYCODE_L:
-				this.left += this.getWidth() / 4;
-				this.invalidate();
-				return true;
-			case KeyEvent.KEYCODE_O:
-				zoom(1f/1.1f);
-				return true;
-			case KeyEvent.KEYCODE_P:
-				zoom(1.1f);
-				return true;
-			}
-		}
-		return false;
-	}
-	
-	/**
-	 * Test if specified rectangles intersect with each other.
-	 * Uses Androids standard Rect class.
-	 */
-	private boolean rectsintersect(
-			int r1x0, int r1y0, int r1x1, int r1y1,
-			int r2x0, int r2y0, int r2x1, int r2y1) {
-		// r1.set(r1x0, r1y0, r1x1, r1y1);
-		// return r1.intersects(r2x0, r2y0, r2x1, r2y1);
-		// temporary "asserts"
-//		if (r1x0 > r1x1) throw new RuntimeException("invalid rect");
-//		if (r2x0 > r2x1) throw new RuntimeException("invalid rect");
-//		if (r1y0 > r1y1) throw new RuntimeException("invalid rect");
-//		if (r2y0 > r2y1) throw new RuntimeException("invalid rect");
-		return !(
-					r1x1 < r2x0 ||		// r1 left of r2
-					r1x0 > r2x1 ||		// r1 right of r2
-					r1y1 < r2y0 ||		// r1 above r2
-					r1y0 > r2y1			// r1 below r2
-				);
-	}
-	
-	/**
-	 * Used as a callback from pdf rendering code.
-	 * TODO: only invalidate what needs to be painted, not the whole view
-	 */
-	public void onImagesRendered(Map<Tile,Bitmap> renderedTiles) {
-		Rect rect = new Rect(); /* TODO: move out of onImagesRendered */
-
-		int viewx0 = left - width/2;
-		int viewy0 = top - height/2;
-		
-		int pageCount = this.pageSizes.length;
-		float currentMarginX = this.getCurrentMarginX();
-		float currentMarginY = this.getCurrentMarginY();
-		
-		viewx0 = adjustPosition(viewx0, width, (int)currentMarginX, 
-				getCurrentMaxPageWidth());
-		viewy0 = adjustPosition(viewy0, height, (int)currentMarginY,
-				(int)getCurrentDocumentHeight());
-		
-		float currpageoff = currentMarginY;
-		float renderAhead = this.pagesProvider.getRenderAhead();
-
-		float pagex0;
-		float pagex1;
-		float pagey0 = 0;
-		float pagey1;
-		float x;
-		float y;
-		int pageWidth;
-		int pageHeight;
-		
-		for(int i = 0; i < pageCount; ++i) {
-			// is page i visible?
-
-			pageWidth = this.getCurrentPageWidth(i);
-			pageHeight = (int) this.getCurrentPageHeight(i);
-			
-			pagex0 = currentMarginX;
-			pagex1 = (int)(currentMarginX + pageWidth);
-			pagey0 = currpageoff;
-			pagey1 = (int)(currpageoff + pageHeight);
-			
-			if (rectsintersect(
-						(int)pagex0, (int)pagey0, (int)pagex1, (int)pagey1, // page rect in doc
-						viewx0, viewy0, viewx0 + this.width, 
-						viewy0 + this.height  
-					))
-			{
-				x = pagex0 - viewx0;
-				y = pagey0 - viewy0;
-				
-				for (Tile tile: renderedTiles.keySet()) {
-					if (tile.getPage() == i) {
-						Bitmap b = renderedTiles.get(tile); 
-						
-						rect.left = (int)(x + tile.getX());
-						rect.top = (int)(y + tile.getY());
-						rect.right = rect.left + b.getWidth();
-						rect.bottom = rect.top + b.getHeight();	
-					
-						if (rect.intersects(0, 0, this.width, (int)(renderAhead*this.height))) {
-							Log.v(TAG, "New bitmap forces redraw");
-							postInvalidate();
-							return;
-						}
-					}
-				}
-				
-			}
-			currpageoff += currentMarginY + this.getCurrentPageHeight(i);
-		}
-		Log.v(TAG, "New bitmap does not require redraw");
-	}
-	
-	/**
-	 * Handle rendering exception.
-	 * Show error message and then quit parent activity.
-	 * TODO: find a proper way to finish an activity when something bad happens in view.
-	 */
-	public void onRenderingException(RenderingException reason) {
-		final Activity activity = this.activity;
-		final String message = reason.getMessage();
-		this.post(new Runnable() {
-			public void run() {
-    			AlertDialog errorMessageDialog = new AlertDialog.Builder(activity)
-				.setTitle("Error")
-				.setMessage(message)
-				.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-					public void onClick(DialogInterface dialog, int id) {
-						activity.finish();
-					}
-				})
-				.setOnCancelListener(new DialogInterface.OnCancelListener() {
-					public void onCancel(DialogInterface dialog) {
-						activity.finish();
-					}
-				})
-				.create();
-    			errorMessageDialog.show();
-			}
-		});
-	}
-	
-	synchronized public void scrollToPage(int page) {
-		scrollToPage(page, true);
-	}
-	
-	public float pagePosition(int page) {
-		float top = 0;
-		
-		for(int i = 0; i < page; ++i) {
-			top += this.getCurrentPageHeight(i);
-		}
-		
-		if (page > 0)
-			top += scale((float)marginY) * (float)(page);
-		
-		return top;		
-	}
-
-	/**
-	 * Move current viewport over n-th page.
-	 * Page is 0-based.
-	 * @param page 0-based page number
-	 */
-	synchronized public void scrollToPage(int page, boolean positionAtTop) {
-		float top;
-		
-		if (page < 0) page = 0;
-		else if (page >= this.getPageCount()) page = this.getPageCount() - 1;
-		
-		if (positionAtTop) {
-			top = this.height/2 + pagePosition(page);
-		}
-		else {
-			top = this.top - pagePosition(currentPage) + pagePosition(page);
-		}
-
-		this.top = (int)top;
-		this.currentPage = page;
-		this.invalidate();
-	}
+// scroll to page;
+	// page position;	
 	
 //	/**
 //	 * Compute what's currently visible.
@@ -1208,424 +1672,5 @@ public class PagesView extends View implements
 //	synchronized Collection<Tile> getVisibleTiles() {
 //		return this.visibleTiles;
 //	}
-	
-	/**
-	 * Rotate pages.
-	 * Updates rotation variable, then invalidates view.
-	 * @param rotation rotation
-	 */
-	synchronized public void rotate(int rotation) {
-		this.rotation = (this.rotation + rotation) % 4;
-		this.invalidate();
-	}
-	
-	/**
-	 * Set find mode.
-	 * @param m true if pages view should display find results and find controls
-	 */
-	synchronized public void setFindMode(boolean m) {
-		if (this.findMode != m) {
-			this.findMode = m;
-			if (!m) {
-				this.findResults = null;
-			}
-		}
-	}
-	
-	/**
-	 * Return find mode.
-	 * @return find mode - true if view is currently in find mode
-	 */
-	public boolean getFindMode() {
-		return this.findMode;
-	}
 
-//	/**
-//	 * Ask pages provider to focus on next find result.
-//	 * @param forward direction of search - true for forward, false for backward
-//	 */
-//	public void findNext(boolean forward) {
-//		this.pagesProvider.findNext(forward);
-//		this.scrollToFindResult();
-//		this.invalidate();
-//	}
-	
-	/**
-	 * Move viewport position to find result (if any).
-	 * Does not call invalidate().
-	 */
-	public void scrollToFindResult(int n) {
-		if (this.findResults == null || this.findResults.isEmpty()) return;
-		Rect center = new Rect();
-		FindResult findResult = this.findResults.get(n);
-
-		for(Rect marker: findResult.markers) {
-			center.union(marker);
-		}
-
-		float x = scale((center.left + center.right) / 2);
-		float y = pagePosition(findResult.page) + scale((center.top + center.bottom) / 2);
-		
-		this.left = (int)(x + this.getCurrentMarginX());
-		this.top = (int)(y);
-	}
-	
-	/**
-	 * Get the current page number
-	 * 
-	 * @return the current page. 0-based
-	 */
-	public int getCurrentPage() {
-		return currentPage;
-	}
-	
-	/**
-	 * Get the current zoom level
-	 * 
-	 * @return the current zoom level
-	 */
-	public int getCurrentAbsoluteZoom() {
-		return zoomLevel;
-	}
-	
-	/**
-	 * Get the current rotation
-	 * 
-	 * @return the current rotation
-	 */
-	public int getPageRotation() {
-		return rotation;
-	}
-	
-	/**
-	 * Get page count.
-	 */
-	public int getPageCount() {
-		return this.pageSizes.length;
-	}
-	
-	/**
-	 * Set find results.
-	 */
-	public void setFindResults(List<FindResult> results) {
-		this.findResults = results;
-	}
-	
-	/**
-	 * Get current find results.
-	 */
-	public List<FindResult> getFindResults() {
-		return this.findResults;
-	}
-	
-	private void doFling(float vx, float vy) {
-		float avx = vx > 0 ? vx : -vx;
-		float avy = vy > 0 ? vy : -vy;
-		
-		if (avx < .25 * avy) {
-			vx = 0;
-		}
-		else if (avy < .25 * avx) {
-			vy = 0;
-		}
-		
-		int marginX = (int)getCurrentMarginX();
-		int marginY = (int)getCurrentMarginY();
-		int minx = this.width/2 + getLowerBound(this.width, marginX, 
-				getCurrentMaxPageWidth());
-		int maxx = this.width/2 + getUpperBound(this.width, marginX, 
-				getCurrentMaxPageWidth());
-		int miny = this.height/2 + getLowerBound(this.height, marginY,
-				  getCurrentDocumentHeight());
-		int maxy = this.height/2 + getUpperBound(this.height, marginY,
-				  getCurrentDocumentHeight());
-
-		this.scroller = new Scroller(activity);
-		this.scroller.fling(this.left, this.top, 
-				(int)-vx, (int)-vy,
-				minx, maxx,
-				miny, maxy);
-		invalidate();
-	}
-// +ls;
-	public void doScroll(int dx, int dy) {
-		this.left += dx;
-		this.top += dy;
-		invalidate();
-	}
-// -ls;
-	
-	/**
-	 * Zoom down one level
-	 */
-	public void zoom(float value) {
-		this.zoomLevel *= value;
-		this.left *= value;
-		this.top *= value;
-		Log.d(TAG, "zoom level changed to " + this.zoomLevel);
-		zoomToRestore = 0;
-		this.invalidate();		
-	}
-
-	/* zoom to width */
-	public void zoomWidth() {
-		int page = currentPage < 0 ? 0 : currentPage;
-		int pageWidth = getCurrentPageWidth(page);
-		if (pageWidth <= 0) {
-			throw new RuntimeException("invalid page " + page + " with: " + pageWidth); 
-		}
-		this.top = (this.top - this.height / 2) * this.width / pageWidth + this.height / 2;
-		this.zoomLevel = this.zoomLevel * (this.width - 2*marginX) / pageWidth;
-		this.left = (int) (this.width/2);
-		zoomToRestore = 0;
-		this.invalidate();		
-	}
-
-	/* zoom to fit */
-	public void zoomFit() {
-		int page = currentPage < 0 ? 0 : currentPage;
-		int z1 = this.zoomLevel * this.width / getCurrentPageWidth(page);
-		int z2 = (int)(this.zoomLevel * this.height / getCurrentPageHeight(page));
-		this.zoomLevel = z2 < z1 ? z2 : z1;
-		Point pos = getPagePositionInDocumentWithZoom(page);
-		this.left = this.width/2 + pos.x;
-		this.top = this.height/2 + pos.y;
-		zoomToRestore = 0;
-		this.invalidate();		
-	}
-
-	/**
-	 * Set zoom
-	 */
-	public void setZoomLevel(int zoomLevel) {
-		if (this.zoomLevel == zoomLevel)
-			return;
-		this.zoomLevel = zoomLevel;
-		Log.d(TAG, "zoom level changed to " + this.zoomLevel);
-		zoomToRestore = 0;
-		this.invalidate();
-	}
-	
-	
-	/**
-	 * Set rotation
-	 */
-	public void setRotation(int rotation) {
-		if (this.rotation == rotation)
-			return;
-		this.rotation = rotation;
-		Log.d(TAG, "rotation changed to " + this.rotation);
-		this.invalidate();
-	}
-	
-	
-	public void setVerticalScrollLock(boolean verticalScrollLock) {
-		this.verticalScrollLock = verticalScrollLock;
-	}
-	
-	
-	public void setColorMode(int colorMode) {
-		this.colorMode = colorMode;
-		this.invalidate();
-	}
-
-
-	public void setZoomIncrement(float step) {
-		this.step = step;
-	}
-	
-	public void setPageWithVolume(boolean pageWithVolume) {
-		this.pageWithVolume = pageWithVolume;
-	}
-	
-
-	private void getGoodTileSizes(int[] sizes, int pageWidth, int pageHeight) {
-		sizes[0] = getGoodTileSize(pageWidth, MIN_TILE_WIDTH, MAX_TILE_WIDTH);		
-		sizes[1] = getGoodTileSize(pageHeight, MIN_TILE_HEIGHT, MAX_TILE_PIXELS / sizes[0]); 
-	}
-	
-	private int getGoodTileSize(int pageSize, int minSize, int maxSize) {
-		if (pageSize <= 2)
-			return 2;
-		if (pageSize <= maxSize)
-			return pageSize;
-		int numInPageSize = (pageSize + maxSize - 1) / maxSize;
-		int proposedSize = (pageSize + numInPageSize - 1) / numInPageSize;
-		if (proposedSize < minSize)
-			return minSize;
-		else
-			return proposedSize;
-	}
-	
-	/* Get the upper and lower bounds for the viewpoint.  The document itself is
-	 * drawn from margin to margin+docDim.   
-	 */
-	private int getLowerBound(int screenDim, int margin, int docDim) {
-		if (docDim <= screenDim) {
-			/* all pages can and do fit */
-			return margin + docDim - screenDim;
-		}
-		else {
-			/* document is too wide/tall to fit */
-			return 0; 
-		}
-	}
-	
-	private int getUpperBound(int screenDim, int margin, int docDim) {
-		if (docDim <= screenDim) {
-			/* all pages can and do fit */
-			return margin;
-		}
-		else {
-			/* document is too wide/tall to fit */
-			return 2 * margin + docDim - screenDim;
-		}
-	}
-	
-	private int adjustPosition(int pos, int screenDim, int margin, int docDim) {
-		int min = getLowerBound(screenDim, margin, docDim);
-		int max = getUpperBound(screenDim, margin, docDim);
-		
-		if (pos < min)
-			return min;
-		else if (max < pos)
-			return max;
-		else
-			return pos;
-	}
-	
-	public BookmarkEntry toBookmarkEntry() {
-		return new BookmarkEntry(this.pageSizes.length, 
-				this.currentPage, scaling0*zoomLevel, rotation, 
-				this.left - this.getCurrentPageWidth(this.currentPage)/2 - marginX);
-	}
-	
-	public void setSideMargins(int margin) {
-		this.marginX = margin;
-	}
-	
-	public void setTopMargin(int margin) {
-		int delta = margin - this.marginY;
-		top += this.currentPage * delta; 
-		this.marginY = margin;
-	}
-	
-	public void setDoubleTap(int doubleTapAction) {
-		this.doubleTapAction = doubleTapAction;
-	}
-	
-// +ls; 2013-02-06;
-	public void doActionZoom( int n )
-	{		
-		float zoomvalue = 1f + n * 0.01f;
-		
-		if(0f < zoomvalue )
-		{
-			zoom( zoomvalue );
-		}
-	}
-// -ls;
-		// +ls; 
-	public void ls_setupdowntap()
-    {
-    	if( ispagetap )
-    		ispagetap = false;
-    	else
-    		ispagetap = true;
-    }
-	private void action_updown( boolean updown )
-	{
-		if( ispagetap )
-			action_page( updown );
-		else
-			action_screen( updown );
-	}
-	private void action_screen( boolean down )
-	{
-		if( down )
-		{
-			this.top += this.getHeight() - 80;//16;
-		}
-		else
-		{
-		// +ls; 2013-02-06;
-			this.top -= this.getHeight() - 80;//16; //
-		// -ls;			
-		}
-		this.invalidate();
-	}
-	private void gotoPage(int page) {
-		int curpage = currentPage;//getCurrentPage();
-		int gopage = curpage + page;	// ls, 2013-02-06;
-		//if( gopage < 0 ) gopage = 0;
-		
-    	//Log.i(TAG, "rewind to page " + page);
-    	//if (this.pagesView != null) {
-    	scrollToPage(gopage, true);
-        //    showAnimated(true);
-    	//}
-    }
-	private void action_page( boolean down )
-	{
-		OpenFileActivity openFileActivity = (OpenFileActivity)activity;
-		if( down )
-			openFileActivity.ls_pagerelative( 1 );
-			//gotoPage(1);//scrollToPage(currentPage + 1 +1);
-		else
-			openFileActivity.ls_pagerelative( -1 );
-			//gotoPage(-1);//scrollToPage(currentPage - 1 +1);
-		
-	}
-// -ls;
-	
-	public boolean doAction(int action) {
-		float zoomValue = Actions.getZoomValue(action);
-		if (0f < zoomValue) {
-			zoom(zoomValue);
-			return true;
-		}
-		switch(action) {
-		case Actions.ACTION_FULL_PAGE_DOWN:
-			scrollToPage(currentPage + 1, false);
-			return true;
-		case Actions.ACTION_FULL_PAGE_UP:
-			scrollToPage(currentPage - 1, false);
-			return true;
-		case Actions.ACTION_PREV_PAGE:
-			action_updown( true);
-			return true;
-		case Actions.ACTION_NEXT_PAGE:
-			action_updown( false );
-			return true;
-		case Actions.ACTION_SCREEN_DOWN:
-			action_updown( true );
-			//this.invalidate();
-			return true;
-		case Actions.ACTION_SCREEN_UP:
-			action_updown( false );
-			return true;
-		default:
-			return false;
-		}
-	}
-	
-	public void setActions(Actions actions) {
-		this.actions = actions;
-	}
-	
-	public void setEink(boolean eink) {
-		this.eink = eink;
-	}
-
-	public void setNook2(boolean nook2) {
-		this.nook2 = nook2;
-	}
-	
-	public void setShowZoomOnScroll(boolean showZoomOnScroll) {
-		this.showZoomOnScroll = showZoomOnScroll;
-	}
-
-	public void setZoomLayout(LinearLayout zoomLayout) {
-		this.zoomLayout = zoomLayout;
-	}
 }
