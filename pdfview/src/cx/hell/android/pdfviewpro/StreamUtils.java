@@ -1,4 +1,4 @@
-package cx.hell.android.pdfview;
+package cx.hell.android.pdfviewpro;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,7 +29,7 @@ public class StreamUtils {
 			}
 			if (totalReadBytes == buf.length) {
 				// grow buf
-				Log.d("cx.hell.android.pdfview", "readBytesFully: growing buffer from " + buf.length + " to " + (buf.length*2));
+				Log.d("cx.hell.android.pdfviewpro", "readBytesFully: growing buffer from " + buf.length + " to " + (buf.length*2));
 				byte newbuf[] = new byte[buf.length*2];
 				System.arraycopy(buf, 0, newbuf, 0, totalReadBytes);
 				buf = newbuf;

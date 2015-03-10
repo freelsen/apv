@@ -1,4 +1,4 @@
-package cx.hell.android.pdfview;
+package cx.hell.android.pdfviewpro;
 
 import java.io.File;
 import java.io.FileFilter;
@@ -36,7 +36,7 @@ public class ChooseFileActivity extends Activity implements OnItemClickListener 
 	/**
 	 * Logging tag.
 	 */
-	private final static String TAG = "cx.hell.android.pdfview";
+	private final static String TAG = "cx.hell.android.pdfviewpro";
 	private final static String PREF_TAG = "ChooseFileActivity";
 	private final static String PREF_HOME = "Home";
 	

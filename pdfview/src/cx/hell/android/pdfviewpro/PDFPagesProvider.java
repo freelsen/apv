@@ -1,4 +1,4 @@
-package cx.hell.android.pdfview;
+package cx.hell.android.pdfviewpro;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -25,7 +25,7 @@ public class PDFPagesProvider extends PagesProvider {
 	/**
 	 * Const used by logging.
 	 */
-	private final static String TAG = "cx.hell.android.pdfview";
+	private final static String TAG = "cx.hell.android.pdfviewpro";
 
 	/* render a little more than twice the screen height, so the next page will be ready */
 	private float renderAhead = 2.1f;
@@ -166,7 +166,7 @@ public class PDFPagesProvider extends PagesProvider {
 				this.misses += 1;
 			}
 			if ((this.hits + this.misses) % 100 == 0 && (this.hits > 0 || this.misses > 0)) {
-				Log.d("cx.hell.android.pdfview.pagecache", "hits: " + hits + ", misses: " + misses + ", hit ratio: " + (float)(hits) / (float)(hits+misses) +
+				Log.d("cx.hell.android.pdfviewpro.pagecache", "hits: " + hits + ", misses: " + misses + ", hit ratio: " + (float)(hits) / (float)(hits+misses) +
 						", size: " + this.bitmaps.size());
 			}
 			return b;

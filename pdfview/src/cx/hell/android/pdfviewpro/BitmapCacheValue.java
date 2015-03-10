@@ -1,4 +1,4 @@
-package cx.hell.android.pdfview;
+package cx.hell.android.pdfviewpro;
 
 import android.graphics.Bitmap;
 

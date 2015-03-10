@@ -1,4 +1,4 @@
-package cx.hell.android.pdfview;
+package cx.hell.android.pdfviewpro;
 
 import android.app.Application;
 import android.util.Log;
@@ -6,7 +6,7 @@ import cx.hell.android.lib.pdf.PDF;
 
 public class APVApplication extends Application {
     
-    private final static String TAG = "cx.hell.android.pdfview";
+    private final static String TAG = "cx.hell.android.pdfviewpro";
 
     public void onCreate() {
         super.onCreate();

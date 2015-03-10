@@ -11,7 +11,7 @@
 #include "mupdf-internal.h"
 
 
-#define PDFVIEW_LOG_TAG "cx.hell.android.pdfview"
+#define PDFVIEW_LOG_TAG "cx.hell.android.pdfviewpro"
 
 static JavaVM *cached_jvm = NULL;
 
@@ -295,34 +295,34 @@ Java_cx_hell_android_lib_pdf_PDF_getPageSize(
 
 
 // #ifdef pro
-// /**
-//  * Get document outline.
-//  */
-// JNIEXPORT jobject JNICALL
-// Java_cx_hell_android_lib_pdf_PDF_getOutlineNative(
-//         JNIEnv *env,
-//         jobject this) {
-//     int error;
-//     pdf_t *pdf = NULL;
-//     jobject joutline = NULL;
-//     fz_outline *outline = NULL; /* outline root */
-//     fz_outline *curr_outline = NULL; /* for walking over fz_outline tree */
-// 
-//     pdf = get_pdf_from_this(env, this);
-//     if (pdf == NULL) {
-//         __android_log_print(ANDROID_LOG_ERROR, PDFVIEW_LOG_TAG, "this.pdf is null");
-//         return NULL;
-//     }
-// 
-//     outline = fz_load_outline(pdf->doc);
-//     if (outline == NULL) return NULL;
-// 
-//     /* recursively copy fz_outline to PDF.Outline */
-//     /* TODO: rewrite pdf_load_outline to create Java's PDF.Outline objects directly */
-//     joutline = create_outline_recursive(env, NULL, outline);
-//     // __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "joutline converted");
-//     return joutline;
-// }
+/**
+ * Get document outline.
+ */
+JNIEXPORT jobject JNICALL
+Java_cx_hell_android_lib_pdf_PDF_getOutlineNative(
+        JNIEnv *env,
+        jobject this) {
+    int error;
+    pdf_t *pdf = NULL;
+    jobject joutline = NULL;
+    fz_outline *outline = NULL; /* outline root */
+    fz_outline *curr_outline = NULL; /* for walking over fz_outline tree */
+
+    pdf = get_pdf_from_this(env, this);
+    if (pdf == NULL) {
+        __android_log_print(ANDROID_LOG_ERROR, PDFVIEW_LOG_TAG, "this.pdf is null");
+        return NULL;
+    }
+
+    outline = fz_load_outline(pdf->doc);
+    if (outline == NULL) return NULL;
+
+    /* recursively copy fz_outline to PDF.Outline */
+    /* TODO: rewrite pdf_load_outline to create Java's PDF.Outline objects directly */
+    joutline = create_outline_recursive(env, NULL, outline);
+    // __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "joutline converted");
+    return joutline;
+}
 // #endif
 
 
@@ -570,28 +570,28 @@ Java_cx_hell_android_lib_pdf_PDF_find(
 
 
 // #ifdef pro
-// /**
-//  * Return text of given page.
-//  */
-// JNIEXPORT jobject JNICALL
-// Java_cx_hell_android_lib_pdf_PDF_getText(
-//         JNIEnv *env,
-//         jobject this,
-//         jint pageno) {
-//     char *text = NULL;
-//     pdf_t *pdf = NULL;
-//     pdf = get_pdf_from_this(env, this);
-//     jstring jtext = NULL;
-// 
-//     if (pdf == NULL) {
-//         __android_log_print(ANDROID_LOG_ERROR, PDFVIEW_LOG_TAG, "getText: pdf is NULL");
-//         return NULL;
-//     }
-//     text = extract_text(pdf, pageno);
-//     jtext = (*env)->NewStringUTF(env, text);
-//     if (text) free(text);
-//     return jtext;
-// }
+/**
+ * Return text of given page.
+ */
+JNIEXPORT jobject JNICALL
+Java_cx_hell_android_lib_pdf_PDF_getText(
+        JNIEnv *env,
+        jobject this,
+        jint pageno) {
+    char *text = NULL;
+    pdf_t *pdf = NULL;
+    pdf = get_pdf_from_this(env, this);
+    jstring jtext = NULL;
+
+    if (pdf == NULL) {
+        __android_log_print(ANDROID_LOG_ERROR, PDFVIEW_LOG_TAG, "getText: pdf is NULL");
+        return NULL;
+    }
+    text = extract_text(pdf, pageno);
+    jtext = (*env)->NewStringUTF(env, text);
+    if (text) free(text);
+    return jtext;
+}
 // #endif
 
 
@@ -741,7 +741,7 @@ pdf_t* get_pdf_from_this(JNIEnv *env, jobject this) {
         jclass this_class = (*env)->GetObjectClass(env, this);
         field_id = (*env)->GetFieldID(env, this_class, "pdf_ptr", "I");
         field_is_cached = 1;
-        __android_log_print(ANDROID_LOG_DEBUG, "cx.hell.android.pdfview", "cached pdf_ptr field id %d", (int)field_id);
+        __android_log_print(ANDROID_LOG_DEBUG, "cx.hell.android.pdfviewpro", "cached pdf_ptr field id %d", (int)field_id);
     }
 	pdf = (pdf_t*) (*env)->GetIntField(env, this, field_id);
     return pdf;
@@ -766,9 +766,9 @@ int get_descriptor_from_file_descriptor(JNIEnv *env, jobject this) {
         jclass this_class = (*env)->GetObjectClass(env, this);
         field_id = (*env)->GetFieldID(env, this_class, "descriptor", "I");
         is_cached = 1;
-        __android_log_print(ANDROID_LOG_DEBUG, "cx.hell.android.pdfview", "cached descriptor field id %d", (int)field_id);
+        __android_log_print(ANDROID_LOG_DEBUG, "cx.hell.android.pdfviewpro", "cached descriptor field id %d", (int)field_id);
     }
-    // __android_log_print(ANDROID_LOG_DEBUG, "cx.hell.android.pdfview", "will get descriptor field...");
+    // __android_log_print(ANDROID_LOG_DEBUG, "cx.hell.android.pdfviewpro", "will get descriptor field...");
     return (*env)->GetIntField(env, this, field_id);
 }
 
@@ -782,7 +782,7 @@ void get_size(JNIEnv *env, jobject size, int *width, int *height) {
         width_field_id = (*env)->GetFieldID(env, size_class, "width", "I");
         height_field_id = (*env)->GetFieldID(env, size_class, "height", "I");
         fields_are_cached = 1;
-        __android_log_print(ANDROID_LOG_DEBUG, "cx.hell.android.pdfview", "cached Size fields");
+        __android_log_print(ANDROID_LOG_DEBUG, "cx.hell.android.pdfviewpro", "cached Size fields");
     }
     *width = (*env)->GetIntField(env, size, width_field_id);
     *height = (*env)->GetIntField(env, size, height_field_id);
@@ -805,7 +805,7 @@ void save_size(JNIEnv *env, jobject size, int width, int height) {
         width_field_id = (*env)->GetFieldID(env, size_class, "width", "I");
         height_field_id = (*env)->GetFieldID(env, size_class, "height", "I");
         fields_are_cached = 1;
-        __android_log_print(ANDROID_LOG_DEBUG, "cx.hell.android.pdfview", "cached Size fields");
+        __android_log_print(ANDROID_LOG_DEBUG, "cx.hell.android.pdfviewpro", "cached Size fields");
     }
     (*env)->SetIntField(env, size, width_field_id, width);
     (*env)->SetIntField(env, size, height_field_id, height);
@@ -832,8 +832,8 @@ pdf_t* parse_pdf_bytes(unsigned char *bytes, size_t len, jstring box_name) {
     pdf->xref = pdf_newxref();
     error = pdf_loadxref_mem(pdf->xref, bytes, len);
     if (error) {
-        __android_log_print(ANDROID_LOG_ERROR, "cx.hell.android.pdfview", "got err from pdf_loadxref_mem: %d", (int)error);
-        __android_log_print(ANDROID_LOG_ERROR, "cx.hell.android.pdfview", "fz errors:\n%s", fz_errorbuf);
+        __android_log_print(ANDROID_LOG_ERROR, "cx.hell.android.pdfviewpro", "got err from pdf_loadxref_mem: %d", (int)error);
+        __android_log_print(ANDROID_LOG_ERROR, "cx.hell.android.pdfviewpro", "fz errors:\n%s", fz_errorbuf);
         /* TODO: free resources */
         return NULL;
     }
@@ -848,7 +848,7 @@ pdf_t* parse_pdf_bytes(unsigned char *bytes, size_t len, jstring box_name) {
         authenticated = pdf_authenticatepassword(pdf->xref, "");
         if (!authenticated) {
             /* TODO: ask for password */
-            __android_log_print(ANDROID_LOG_ERROR, "cx.hell.android.pdfview", "failed to authenticate with empty password");
+            __android_log_print(ANDROID_LOG_ERROR, "cx.hell.android.pdfviewpro", "failed to authenticate with empty password");
             return NULL;
         }
     }
@@ -891,113 +891,113 @@ pdf_t* parse_pdf_bytes(unsigned char *bytes, size_t len, jstring box_name) {
 
 
 // #ifdef pro
-// jobject create_outline_recursive(JNIEnv *env, jclass outline_class, const fz_outline *outline) {
-//     static int jni_ids_cached = 0;
-//     static jmethodID constructor_id = NULL;
-//     static jfieldID title_field_id = NULL;
-//     static jfieldID page_field_id = NULL;
-//     static jfieldID next_field_id = NULL;
-//     static jfieldID down_field_id = NULL;
-//     int outline_class_found = 0;
-//     jobject joutline = NULL;
-//     jstring jtitle = NULL;
-// 
-//     if (outline == NULL) return NULL;
-// 
-//     if (outline_class == NULL) {
-//         outline_class = (*env)->FindClass(env, "cx/hell/android/lib/pdf/PDF$Outline");
-//         if (outline_class == NULL) {
-//             __android_log_print(ANDROID_LOG_ERROR, PDFVIEW_LOG_TAG, "can't find outline class");
-//             return NULL;
-//         }
-//         outline_class_found = 1;
-//     }
-// 
-//     if (!jni_ids_cached) {
-//         constructor_id = (*env)->GetMethodID(env, outline_class, "<init>", "()V");
-//         if (constructor_id == NULL) {
-//             (*env)->DeleteLocalRef(env, outline_class);
-//             __android_log_print(ANDROID_LOG_ERROR, PDFVIEW_LOG_TAG, "create_outline_recursive: couldn't get method id for Outline constructor");
-//             return NULL;
-//         }
-//         // __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "got constructor id");
-//         title_field_id = (*env)->GetFieldID(env, outline_class, "title", "Ljava/lang/String;");
-//         if (title_field_id == NULL) {
-//             (*env)->DeleteLocalRef(env, outline_class);
-//             __android_log_print(ANDROID_LOG_ERROR, PDFVIEW_LOG_TAG, "create_outline_recursive: couldn't get field id for Outline.title");
-//             return NULL;
-//         }
-//         // __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "got title field id");
-//         page_field_id = (*env)->GetFieldID(env, outline_class, "page", "I");
-//         if (page_field_id == NULL) {
-//             (*env)->DeleteLocalRef(env, outline_class);
-//             __android_log_print(ANDROID_LOG_ERROR, PDFVIEW_LOG_TAG, "create_outline_recursive: couldn't get field id for Outline.page");
-//             return NULL;
-//         }
-//         // __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "got page field id");
-//         next_field_id = (*env)->GetFieldID(env, outline_class, "next", "Lcx/hell/android/lib/pdf/PDF$Outline;");
-//         if (next_field_id == NULL) {
-//             (*env)->DeleteLocalRef(env, outline_class);
-//             __android_log_print(ANDROID_LOG_ERROR, PDFVIEW_LOG_TAG, "create_outline_recursive: couldn't get field id for Outline.next");
-//             return NULL;
-//         }
-//         // __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "got down field id");
-//         down_field_id = (*env)->GetFieldID(env, outline_class, "down", "Lcx/hell/android/lib/pdf/PDF$Outline;");
-//         if (down_field_id == NULL) {
-//             (*env)->DeleteLocalRef(env, outline_class);
-//             __android_log_print(ANDROID_LOG_ERROR, PDFVIEW_LOG_TAG, "create_outline_recursive: couldn't get field id for Outline.down");
-//             return NULL;
-//         }
-// 
-//         jni_ids_cached = 1;
-//     }
-// 
-//     joutline = (*env)->NewObject(env, outline_class, constructor_id);
-//     if (joutline == NULL) {
-//         (*env)->DeleteLocalRef(env, outline_class);
-//         __android_log_print(ANDROID_LOG_ERROR, PDFVIEW_LOG_TAG, "failed to create joutline");
-//         return NULL;
-//     }
-//     // __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "joutline created");
-//     if (outline->title) {
-//         // __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "title to set: %s", outline->title);
-//         jtitle = (*env)->NewStringUTF(env, outline->title);
-//         // __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "jtitle created");
-//         (*env)->SetObjectField(env, joutline, title_field_id, jtitle);
-//         (*env)->DeleteLocalRef(env, jtitle);
-//         // __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "title set");
-//     } else {
-//         // __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "title is null, won't create not set");
-//     }
-//     if (outline->dest.kind == FZ_LINK_GOTO) {
-//         (*env)->SetIntField(env, joutline, page_field_id, outline->dest.ld.gotor.page);
-//     } else {
-//         __android_log_print(ANDROID_LOG_WARN, PDFVIEW_LOG_TAG, "outline contains non-GOTO link");
-//         (*env)->SetIntField(env, joutline, page_field_id, -1);
-//     }
-//     // __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "page set");
-//     if (outline->next) {
-//         jobject next_outline = NULL;
-//         next_outline = create_outline_recursive(env, outline_class, outline->next);
-//         (*env)->SetObjectField(env, joutline, next_field_id, next_outline);
-//         (*env)->DeleteLocalRef(env, next_outline);
-//         // __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "next set");
-//     }
-//     if (outline->down) {
-//         jobject down_outline = NULL;
-//         down_outline = create_outline_recursive(env, outline_class, outline->down);
-//         (*env)->SetObjectField(env, joutline, down_field_id, down_outline);
-//         (*env)->DeleteLocalRef(env, down_outline);
-//         // __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "down set");
-//     }
-// 
-//     if (outline_class_found) {
-//         (*env)->DeleteLocalRef(env, outline_class);
-//         // __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "local ref deleted");
-//     }
-// 
-//     return joutline;
-// }
+jobject create_outline_recursive(JNIEnv *env, jclass outline_class, const fz_outline *outline) {
+    static int jni_ids_cached = 0;
+    static jmethodID constructor_id = NULL;
+    static jfieldID title_field_id = NULL;
+    static jfieldID page_field_id = NULL;
+    static jfieldID next_field_id = NULL;
+    static jfieldID down_field_id = NULL;
+    int outline_class_found = 0;
+    jobject joutline = NULL;
+    jstring jtitle = NULL;
+
+    if (outline == NULL) return NULL;
+
+    if (outline_class == NULL) {
+        outline_class = (*env)->FindClass(env, "cx/hell/android/lib/pdf/PDF$Outline");
+        if (outline_class == NULL) {
+            __android_log_print(ANDROID_LOG_ERROR, PDFVIEW_LOG_TAG, "can't find outline class");
+            return NULL;
+        }
+        outline_class_found = 1;
+    }
+
+    if (!jni_ids_cached) {
+        constructor_id = (*env)->GetMethodID(env, outline_class, "<init>", "()V");
+        if (constructor_id == NULL) {
+            (*env)->DeleteLocalRef(env, outline_class);
+            __android_log_print(ANDROID_LOG_ERROR, PDFVIEW_LOG_TAG, "create_outline_recursive: couldn't get method id for Outline constructor");
+            return NULL;
+        }
+        // __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "got constructor id");
+        title_field_id = (*env)->GetFieldID(env, outline_class, "title", "Ljava/lang/String;");
+        if (title_field_id == NULL) {
+            (*env)->DeleteLocalRef(env, outline_class);
+            __android_log_print(ANDROID_LOG_ERROR, PDFVIEW_LOG_TAG, "create_outline_recursive: couldn't get field id for Outline.title");
+            return NULL;
+        }
+        // __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "got title field id");
+        page_field_id = (*env)->GetFieldID(env, outline_class, "page", "I");
+        if (page_field_id == NULL) {
+            (*env)->DeleteLocalRef(env, outline_class);
+            __android_log_print(ANDROID_LOG_ERROR, PDFVIEW_LOG_TAG, "create_outline_recursive: couldn't get field id for Outline.page");
+            return NULL;
+        }
+        // __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "got page field id");
+        next_field_id = (*env)->GetFieldID(env, outline_class, "next", "Lcx/hell/android/lib/pdf/PDF$Outline;");
+        if (next_field_id == NULL) {
+            (*env)->DeleteLocalRef(env, outline_class);
+            __android_log_print(ANDROID_LOG_ERROR, PDFVIEW_LOG_TAG, "create_outline_recursive: couldn't get field id for Outline.next");
+            return NULL;
+        }
+        // __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "got down field id");
+        down_field_id = (*env)->GetFieldID(env, outline_class, "down", "Lcx/hell/android/lib/pdf/PDF$Outline;");
+        if (down_field_id == NULL) {
+            (*env)->DeleteLocalRef(env, outline_class);
+            __android_log_print(ANDROID_LOG_ERROR, PDFVIEW_LOG_TAG, "create_outline_recursive: couldn't get field id for Outline.down");
+            return NULL;
+        }
+
+        jni_ids_cached = 1;
+    }
+
+    joutline = (*env)->NewObject(env, outline_class, constructor_id);
+    if (joutline == NULL) {
+        (*env)->DeleteLocalRef(env, outline_class);
+        __android_log_print(ANDROID_LOG_ERROR, PDFVIEW_LOG_TAG, "failed to create joutline");
+        return NULL;
+    }
+    // __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "joutline created");
+    if (outline->title) {
+        // __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "title to set: %s", outline->title);
+        jtitle = (*env)->NewStringUTF(env, outline->title);
+        // __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "jtitle created");
+        (*env)->SetObjectField(env, joutline, title_field_id, jtitle);
+        (*env)->DeleteLocalRef(env, jtitle);
+        // __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "title set");
+    } else {
+        // __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "title is null, won't create not set");
+    }
+    if (outline->dest.kind == FZ_LINK_GOTO) {
+        (*env)->SetIntField(env, joutline, page_field_id, outline->dest.ld.gotor.page);
+    } else {
+        __android_log_print(ANDROID_LOG_WARN, PDFVIEW_LOG_TAG, "outline contains non-GOTO link");
+        (*env)->SetIntField(env, joutline, page_field_id, -1);
+    }
+    // __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "page set");
+    if (outline->next) {
+        jobject next_outline = NULL;
+        next_outline = create_outline_recursive(env, outline_class, outline->next);
+        (*env)->SetObjectField(env, joutline, next_field_id, next_outline);
+        (*env)->DeleteLocalRef(env, next_outline);
+        // __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "next set");
+    }
+    if (outline->down) {
+        jobject down_outline = NULL;
+        down_outline = create_outline_recursive(env, outline_class, outline->down);
+        (*env)->SetObjectField(env, joutline, down_field_id, down_outline);
+        (*env)->DeleteLocalRef(env, down_outline);
+        // __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "down set");
+    }
+
+    if (outline_class_found) {
+        (*env)->DeleteLocalRef(env, outline_class);
+        // __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "local ref deleted");
+    }
+
+    return joutline;
+}
 // #endif
 
 

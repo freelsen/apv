@@ -1,4 +1,4 @@
-package cx.hell.android.pdfview;
+package cx.hell.android.pdfviewpro;
 
 import android.app.Activity;
 import android.content.SharedPreferences;
@@ -13,7 +13,7 @@ import android.preference.PreferenceManager;
 import android.util.Log;
 
 public class Options extends PreferenceActivity implements OnSharedPreferenceChangeListener {
-	private final static String TAG = "cx.hell.android.pdfview";
+	private final static String TAG = "cx.hell.android.pdfviewpro";
 
 	public final static String PREF_TAG = "Options";
 	public final static String PREF_ZOOM_ANIMATION = "zoomAnimation";
