@@ -43,7 +43,10 @@
             android:normalScreens="true"
             android:largeScreens="true"
             android:anyDensity="true"/>
-	
+    
+    <!-- 141209- to get file system read/write permission -->
+	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"></uses-permission>
+	<uses-permission android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS"></uses-permission>
 	
 
 	<application android:name="cx.hell.android.pdfviewpro.APVApplication"
