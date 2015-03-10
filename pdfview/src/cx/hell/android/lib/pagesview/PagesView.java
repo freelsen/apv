@@ -291,6 +291,8 @@ public class PagesView extends View implements
 			}
 // !ls; single tap;
 			public boolean onSingleTapConfirmed(MotionEvent e) {
+				//final Activity activity = this.activity;
+				
     			if (mtDebounce + 600 > SystemClock.uptimeMillis()) 
     				return false;
 
@@ -324,12 +326,23 @@ public class PagesView extends View implements
 				downleft.set(0, height/2, 100, height*3/4);
 				downright.set(width-100, height/2, width, height*3/4);
 				
+				
 				if( upleft.contains((int)e.getX(), (int)e.getY()) || 
 					upright.contains((int)e.getX(), (int)e.getY()) )
 					return doAction(actions.getAction(Actions.TOP_TAP));
 				if( downleft.contains((int)e.getX(), (int)e.getY()) || 
 					downright.contains((int)e.getX(), (int)e.getY()) )
 					return doAction(actions.getAction(Actions.BOTTOM_TAP));
+
+				Rect leftbottomcon = new Rect();
+				leftbottomcon.set(0, height - 100, 100, height);
+				if( leftbottomcon.contains((int)e.getX(), (int)e.getY()))
+				{
+					
+					openFileActivity.ls_showzoom();
+					return true;
+				}
+						
 				
 				return false;
 				//return doAction(actions.getAction(e.getY() < height / 2 ? Actions.TOP_TAP : Actions.BOTTOM_TAP));

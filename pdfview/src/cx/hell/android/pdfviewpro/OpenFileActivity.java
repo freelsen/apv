@@ -181,6 +181,8 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
 // +ls; 2013-02-06;
 	private LinearLayout zoomLayout2;	// 2013-02-06; AM;
 	private LinearLayout zoomLayout3;
+	private boolean isshowzoom = false;
+
 // -ls;
 	
 	// page number display
@@ -468,19 +470,21 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
 			getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		this.pageNumberTextView.setVisibility(pageNumberAnim == null ? View.GONE : View.VISIBLE);
 // #ifdef pro
-		this.zoomLayout.setVisibility((zoomAnim == null || this.textReflowMode) ? View.GONE : View.VISIBLE);
 	// +ls;
-		this.zoomLayout2.setVisibility((zoomAnim == null || this.textReflowMode) ? View.GONE : View.VISIBLE);
-		this.zoomLayout3.setVisibility((zoomAnim == null || this.textReflowMode) ? View.GONE : View.VISIBLE);
-		
+		if(isshowzoom == false)
+		{
+			this.zoomLayout.setVisibility((zoomAnim == null || this.textReflowMode) ? View.GONE : View.VISIBLE);
+			this.zoomLayout2.setVisibility((zoomAnim == null || this.textReflowMode) ? View.GONE : View.VISIBLE);
+			this.zoomLayout3.setVisibility((zoomAnim == null || this.textReflowMode) ? View.GONE : View.VISIBLE);
+		}
 	// -ls;
 // #endif
 		
 // #ifdef lite
 // 		this.zoomLayout.setVisibility(zoomAnim == null ? View.GONE : View.VISIBLE);
 	// +ls;
-		this.zoomLayout2.setVisibility(zoomAnim == null ? View.GONE : View.VISIBLE);
-		this.zoomLayout3.setVisibility(zoomAnim == null ? View.GONE : View.VISIBLE);
+//		this.zoomLayout2.setVisibility(zoomAnim == null ? View.GONE : View.VISIBLE);
+//		this.zoomLayout3.setVisibility(zoomAnim == null ? View.GONE : View.VISIBLE);
 	// -ls;
 // #endif
         
@@ -990,39 +994,70 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
 		return super.dispatchKeyEvent(event);    	
     };
     
+    public void ls_showzoom()
+    {
+    	if( isshowzoom )
+    	{
+    		zoomLayout3.setVisibility(View.GONE);
+    		zoomLayout2.setVisibility(View.GONE);
+    		zoomLayout.setVisibility(View.GONE);
+    		isshowzoom = false;
+    	}
+    	else
+    	{
+    		zoomLayout.setVisibility(View.VISIBLE);
+    		zoomLayout2.setVisibility(View.VISIBLE);
+    		zoomLayout3.setVisibility(View.VISIBLE);
+    		isshowzoom = true;
+    	}
+    }
     public void showZoom() {
-// #ifdef pro
-    	if (this.textReflowMode) {
-    		zoomLayout.setVisibility(View.GONE);
-    	// +ls;
-    		zoomLayout2.setVisibility(View.GONE);
-    		zoomLayout3.setVisibility(View.GONE);
-    	// -ls;
-    		return;
-    	}
-// #endif
-    	if (zoomAnim == null) {
-    		zoomLayout.setVisibility(View.GONE);
-    	// +ls;
-    		zoomLayout2.setVisibility(View.GONE);
-    		zoomLayout3.setVisibility(View.GONE);
-    	// -ls;
-    		return;
-    	}
-    	
     // +ls;
-    	zoomLayout2.clearAnimation();
-    	zoomLayout2.setVisibility(View.VISIBLE);
-    	zoomLayout3.clearAnimation();
-    	zoomLayout3.setVisibility(View.VISIBLE);
+    	if( isshowzoom == false  )
+    	{
     // -ls;
-    	zoomLayout.clearAnimation();
-    	zoomLayout.setVisibility(View.VISIBLE);
-    	zoomHandler.removeCallbacks(zoomRunnable);
-    	zoomHandler.postDelayed(zoomRunnable, fadeStartOffset);
+// #ifdef pro
+	    	if (this.textReflowMode) {
+	    		zoomLayout.setVisibility(View.GONE);
+	    	// +ls;
+	    		zoomLayout2.setVisibility(View.GONE);
+	    		zoomLayout3.setVisibility(View.GONE);
+	    	// -ls;
+	    		return;
+	    	}
+// #endif
+    	
+	    	if (zoomAnim == null) {
+	    		zoomLayout.setVisibility(View.GONE);
+	    	// +ls;
+	    		zoomLayout2.setVisibility(View.GONE);
+	    		zoomLayout3.setVisibility(View.GONE);
+	    	// -ls;
+	    		return;
+	    	}
+    	}
+    	else
+    	{
+	    // +ls;
+	    	
+	    	zoomLayout2.clearAnimation();
+	    	zoomLayout2.setVisibility(View.VISIBLE);
+	    	zoomLayout3.clearAnimation();
+	    	zoomLayout3.setVisibility(View.VISIBLE);
+	    // -ls;
+	    	zoomLayout.clearAnimation();
+	    	zoomLayout.setVisibility(View.VISIBLE);
+	    	zoomHandler.removeCallbacks(zoomRunnable);
+	    	zoomHandler.postDelayed(zoomRunnable, fadeStartOffset);
+    	}
     }
     
     private void fadeZoom() {
+    // +ls;
+    	if( isshowzoom == false )
+    		return;
+    // -ls;
+    	
 // #ifdef pro
     	if (this.textReflowMode) {
     		this.zoomLayout.setVisibility(View.GONE);
@@ -1453,6 +1488,8 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
         activityLayout.addView(zoomLayout2,lp2);
         activityLayout.addView(zoomLayout3,lp3);
     // -ls;
+        
+        ls_showzoom();
    }
 
    
