@@ -68,6 +68,7 @@ public class PagesView extends View implements
 	private float mtDistanceStart;
 	private long mtDebounce;
 	
+	private boolean isdraw = false;
 	/* zoom steps */
 	float step = 1.414f;
 	
@@ -489,9 +490,12 @@ public class PagesView extends View implements
 						maxExcursionX = excursionX;
 					
 					if (lockedVertically)
+					{
 						dx = 0;
-					if( lockedHoriz)
-						dy = 0;
+						//dy = 0; // 2013-09-03;
+					}
+					//if( lockedHoriz)
+					//	dy = 0;
 					
 					if( dx !=0 || dy !=0 )
 					{
@@ -560,6 +564,8 @@ public class PagesView extends View implements
 		if (event.getAction() == KeyEvent.ACTION_DOWN) {
 			int action = actions.getAction(keyCode);
 			
+//			((cx.hell.android.pdfviewpro.OpenFileActivity)activity).ls_showFindDialog( keyCode);
+			
 			switch (keyCode) {
 			case KeyEvent.KEYCODE_SEARCH:
 				((cx.hell.android.pdfviewpro.OpenFileActivity)activity).showFindDialog();
@@ -586,10 +592,28 @@ public class PagesView extends View implements
 				}
 				volumeUpIsDown = true;
 				return true;
+		//	case 105:
+		//		doAction(Actions.ACTION_SCREEN_UP);
+		//		return true;
+		//	case 106:
+		//		doAction(Actions.ACTION_SCREEN_DOWN);
+		//		return true;
 			case KeyEvent.KEYCODE_DPAD_UP:
+				//doAction(Actions.ACTION_SCREEN_UP);
+				doAction(actions.getAction(KeyEvent.KEYCODE_DPAD_UP));
+				return true;
 			case KeyEvent.KEYCODE_DPAD_DOWN:
+				//doAction(Actions.ACTION_SCREEN_DOWN);
+				doAction(actions.getAction(KeyEvent.KEYCODE_DPAD_DOWN));
+				return true;
 			case KeyEvent.KEYCODE_DPAD_LEFT:
+				doAction(actions.getAction(KeyEvent.KEYCODE_DPAD_LEFT));
+				//doAction(Actions.ACTION_SCREEN_UP);
+				return true;
 			case KeyEvent.KEYCODE_DPAD_RIGHT:
+				doAction(actions.getAction(KeyEvent.KEYCODE_DPAD_RIGHT));
+				//doAction(Actions.ACTION_SCREEN_DOWN);
+				return true;
 			case 92:
 			case 93:
 			case 94:
@@ -605,6 +629,7 @@ public class PagesView extends View implements
 			case KeyEvent.KEYCODE_J:
 				doAction(Actions.ACTION_SCREEN_DOWN);
 				return true;
+			
 			case KeyEvent.KEYCODE_H:
 				this.left -= this.getWidth() / 4;
 				ls_invalidate();
@@ -641,7 +666,7 @@ public class PagesView extends View implements
 		return !(
 					r1x1 < r2x0 ||		// r1 left of r2
 					r1x0 > r2x1 ||		// r1 right of r2
-					r1y1 < r2y0 ||		// r1 above r2
+					r1y1 <= r2y0 ||		// r1 above r2
 					r1y0 > r2y1			// r1 below r2
 				);
 	}
@@ -802,10 +827,12 @@ public class PagesView extends View implements
 			scrollToPage(currentPage - 1, false);
 			return true;
 		case Actions.ACTION_PREV_PAGE:
-			action_updown( true);
+			scrollToPage(currentPage - 1, true);
+			//action_updown( false);
 			return true;
 		case Actions.ACTION_NEXT_PAGE:
-			action_updown( false );
+			scrollToPage(currentPage + 1, true);
+			//action_updown( true );
 			return true;
 		case Actions.ACTION_SCREEN_DOWN:
 			action_updown( true );
@@ -1403,19 +1430,19 @@ public class PagesView extends View implements
 				
 			// top tap detection;
 				Rect upleft 	= new Rect();
-				Rect upright 	= new Rect();
+				//Rect upright 	= new Rect();
 				// left, top, right, bottom;
 				upleft.set(0, 0, width/3, height/2 ); 				// 2013-07-14; height / 4, 100, height / 2);
-				upright.set(width*2/3, 0, width, height/2);			// 2013-07-14;width - 100, height/4, width, height/2);
-				if( upleft.contains((int)e.getX(), (int)e.getY())   ||  upright.contains((int)e.getX(), (int)e.getY()) )
+				//130921;upright.set(width*2/3, 0, width, height/2);			// 2013-07-14;width - 100, height/4, width, height/2);
+				if( upleft.contains((int)e.getX(), (int)e.getY()) )//  ||  upright.contains((int)e.getX(), (int)e.getY()) )
 					return doAction(actions.getAction(Actions.TOP_TAP));
 				
 			// bottom tap detection;
 				Rect downleft 	= new Rect();
-				Rect downright 	= new Rect();
+				//Rect downright 	= new Rect();
 				downleft.set(0, height/2, width/3, height); 		// 2013-07-14; height/2, 100, height*3/4);
-				downright.set(width*2/3, height/2, width, height); 	// 2013-07-14; width-100, height/2, width, height*3/4);
-				if( downleft.contains((int)e.getX(), (int)e.getY()) || downright.contains((int)e.getX(), (int)e.getY()) )
+				//downright.set(width*2/3, height/2, width, height); 	// 2013-07-14; width-100, height/2, width, height*3/4);
+				if( downleft.contains((int)e.getX(), (int)e.getY()))// || downright.contains((int)e.getX(), (int)e.getY()) )
 					return doAction(actions.getAction(Actions.BOTTOM_TAP));
 				return false;
 				//return doAction(actions.getAction(e.getY() < height / 2 ? Actions.TOP_TAP : Actions.BOTTOM_TAP));
@@ -1428,10 +1455,12 @@ public class PagesView extends View implements
 	//=== @2013-07-24,11:40; draw operation ===
 	private void ls_postInvalidate()
 	{
+		this.isdraw = true;
 		postInvalidate();
 	}
 	public void ls_invalidate()
 	{
+		this.isdraw = true;
 		invalidate();
 	}
 	public void onDraw(Canvas canvas) {
@@ -1447,6 +1476,11 @@ public class PagesView extends View implements
 	 * Also collect info what's visible and push this info to page renderer.
 	 */
 	private void drawPages(Canvas canvas) {
+	//	if( !this.isdraw )
+	//		return;
+	//	else
+	//		this.isdraw = false;
+		
 		if (this.eink) {
 			canvas.drawColor(Color.WHITE);
 		}

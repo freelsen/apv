@@ -868,8 +868,9 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
 		//this.pagesView.invalidate();
 		 */
 		int curpage = this.pagesView.getCurrentPage();
-		int gopage = curpage + n + 1;	// ls, 2013-02-06;
-		if( gopage < 0 ) gopage = 0;
+		int gopage = curpage + n;//2013-08-17; + 1;	// ls, 2013-02-06;
+		if( gopage < 0 ) 
+			gopage = 0;
 		OpenFileActivity.this.gotoPage(gopage);
     }
 //--- layout & show/hide zooms buttons; ---
@@ -1435,6 +1436,35 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
      * Show find dialog.
      * Very pretty UI code ;)
      */
+    public void ls_showFindDialog( int info )
+    {
+    	String s = String.valueOf(info);
+    	Log.d(TAG, "find dialog...");
+    	final Dialog dialog = new Dialog(this);
+    	dialog.setTitle(s);//R.string.find_dialog_title);
+    	LinearLayout contents = new LinearLayout(this);
+    	contents.setOrientation(LinearLayout.VERTICAL);
+    	this.findTextInputField = new EditText(this);
+    	this.findTextInputField.setWidth(this.pagesView.getWidth() * 80 / 100);
+    	Button goButton = new Button(this);
+    	goButton.setText(R.string.find_go_button);
+    	goButton.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				String text = OpenFileActivity.this.findTextInputField.getText().toString();
+				OpenFileActivity.this.findText(text);
+				dialog.dismiss();
+			}
+    	});
+    	LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+    	params.leftMargin = 5;
+    	params.rightMargin = 5;
+    	params.bottomMargin = 2;
+    	params.topMargin = 2;
+    	contents.addView(findTextInputField, params);
+    	contents.addView(goButton, params);
+    	dialog.setContentView(contents);
+    	dialog.show();
+    }
     public void showFindDialog() {
     	Log.d(TAG, "find dialog...");
     	final Dialog dialog = new Dialog(this);
