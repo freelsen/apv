@@ -140,9 +140,32 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
 	private Integer currentFindResultNumber = null;
 
 	// zoom buttons, layout and fade animation
+/*	
 	private ImageButton zoomDownButton;
 	private ImageButton zoomWidthButton;
 	private ImageButton zoomUpButton;
+*/	
+// +LS; 2013-02-04;
+	private Button zoomDownButton;
+	private Button zoomWidthButton;
+	private Button zoomUpButton;
+
+	private Button btn_zoom_p1;
+	private Button btn_zoom_p2;
+	private Button btn_zoom_p3;
+	private Button btn_zoom_p4;
+	private Button btn_zoom_p5;
+	private Button btn_zoom_p6;
+	private Button btn_zoom_n1;
+	//private ImageButton btn_zoom_n1;
+	private Button btn_zoom_n2;
+	private Button btn_zoom_n3;
+	private Button btn_zoom_n4;
+	private Button btn_zoom_n5;
+	private Button btn_zoom_n6;
+	private Button btn_zoom_f;
+	private Button btn_zoom_e;
+// -LS;
 	private Animation zoomAnim;
 	private LinearLayout zoomLayout;
 
@@ -472,7 +495,91 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
     /**
      * Set handlers on zoom level buttons
      */
+    private void ls_pagerelative( int n )
+    {
+    	//pagesView.zoomWidth();
+		int curpage = this.pagesView.getCurrentPage();
+		int gopage = curpage + n;
+		this.pagesView.scrollToPage(gopage, false);
+		//this.pagesView.invalidate();
+		// !-ls: after scrolltopage, the currentpage number not update;
+    }
     private void setZoomButtonHandlers() {
+    // +ls, 2013-02-04;
+    	this.btn_zoom_n1.setOnClickListener(new View.OnClickListener() {
+    		public void onClick(View v) {
+				ls_pagerelative(-1);
+			}
+    	});
+    	this.btn_zoom_n2.setOnClickListener(new View.OnClickListener() {
+    		public void onClick(View v) {
+				ls_pagerelative(-2);
+			}
+    	});
+    	this.btn_zoom_n3.setOnClickListener(new View.OnClickListener() {
+    		public void onClick(View v) {
+				ls_pagerelative(-5);
+			}
+    	});
+    	this.btn_zoom_n4.setOnClickListener(new View.OnClickListener() {
+    		public void onClick(View v) {
+				ls_pagerelative(-10);
+			}
+    	});
+    	this.btn_zoom_n5.setOnClickListener(new View.OnClickListener() {
+    		public void onClick(View v) {
+				ls_pagerelative(-20);
+			}
+    	});
+    	this.btn_zoom_n6.setOnClickListener(new View.OnClickListener() {
+    		public void onClick(View v) {
+				ls_pagerelative(-50);
+			}
+    	});
+    	
+    	this.btn_zoom_p1.setOnClickListener(new View.OnClickListener() {
+    		public void onClick(View v) {
+				ls_pagerelative(+1);
+			}
+    	});
+    	this.btn_zoom_p2.setOnClickListener(new View.OnClickListener() {
+    		public void onClick(View v) {
+				ls_pagerelative(+2);
+			}
+    	});
+    	this.btn_zoom_p3.setOnClickListener(new View.OnClickListener() {
+    		public void onClick(View v) {
+				ls_pagerelative(+5);
+			}
+    	});
+    	this.btn_zoom_p4.setOnClickListener(new View.OnClickListener() {
+    		public void onClick(View v) {
+				ls_pagerelative(+10);
+			}
+    	});
+    	this.btn_zoom_p5.setOnClickListener(new View.OnClickListener() {
+    		public void onClick(View v) {
+				ls_pagerelative(+20);
+			}
+    	});
+    	this.btn_zoom_p6.setOnClickListener(new View.OnClickListener() {
+    		public void onClick(View v) {
+				ls_pagerelative(+50);
+			}
+    	});
+    	
+    	this.btn_zoom_f.setOnClickListener(new View.OnClickListener() {
+    		public void onClick(View v) {
+				ls_pagerelative(-999);
+			}
+    	});
+    	this.btn_zoom_e.setOnClickListener(new View.OnClickListener() {
+    		public void onClick(View v) {
+				ls_pagerelative(999);
+			}
+   	});
+    	
+    // -ls;
     	this.zoomDownButton.setOnLongClickListener(new View.OnLongClickListener() {
 			public boolean onLongClick(View v) {
 				pagesView.doAction(actions.getAction(Actions.LONG_ZOOM_IN));
@@ -934,10 +1041,125 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
     	if (zoomLayout != null) {
     		activityLayout.removeView(zoomLayout);
     	}
-    	
+// LS; 2013-02-04;    	
         zoomLayout = new LinearLayout(this);
         zoomLayout.setOrientation(LinearLayout.HORIZONTAL);
-		zoomDownButton = new ImageButton(this);
+
+// +ls, 2013-02-04;        
+		
+		btn_zoom_f = new Button(this);
+		btn_zoom_e = new Button(this);
+		
+		btn_zoom_f.setText("|<");
+		btn_zoom_e.setText(">|");
+		
+        btn_zoom_p1 = new Button(this);
+		btn_zoom_p2 = new Button(this);
+		btn_zoom_p3 = new Button(this);
+		btn_zoom_p4 = new Button(this);		
+		btn_zoom_p5 = new Button(this);
+		btn_zoom_p6 = new Button(this);
+			
+		btn_zoom_p1.setText("1");
+		btn_zoom_p2.setText("2");
+		btn_zoom_p3.setText("5");
+		btn_zoom_p4.setText("10");
+		btn_zoom_p5.setText("20");
+		btn_zoom_p6.setText("50");		
+		
+        //btn_zoom_p1.setImageDrawable(getResources().getDrawable(zoomWidthId[mode]));
+        //btn_zoom_p1.setBackgroundColor(Color.TRANSPARENT);
+		//btn_zoom_p2.setImageDrawable(getResources().getDrawable(zoomWidthId[mode]));
+		//btn_zoom_p2.setBackgroundColor(Color.TRANSPARENT);
+		//btn_zoom_p3.setImageDrawable(getResources().getDrawable(zoomWidthId[mode]));
+		//btn_zoom_p3.setBackgroundColor(Color.TRANSPARENT);
+		//btn_zoom_p4.setImageDrawable(getResources().getDrawable(zoomWidthId[mode]));
+		//btn_zoom_p4.setBackgroundColor(Color.TRANSPARENT);
+		
+		//创建一个button按钮
+		//07
+		//    Button btn1 = new Button(this);
+		//08
+		//    btn1.setText(”this is a button”);
+		//09
+		 //   btn1.setId(1);
+
+		btn_zoom_n1 = new Button(this);//ImageButton(this);
+		btn_zoom_n2 = new Button(this);
+		btn_zoom_n3 = new Button(this);
+		btn_zoom_n4 = new Button(this);
+		btn_zoom_n5 = new Button(this);
+		btn_zoom_n6 = new Button(this);
+		
+		btn_zoom_n1.setText("-");
+		btn_zoom_n2.setText("-");
+		btn_zoom_n3.setText("-");
+		btn_zoom_n4.setText("-");
+		btn_zoom_n5.setText("-");
+		btn_zoom_n6.setText("-");
+
+		
+		//btn_zoom_n1.setImageDrawable(getResources().getDrawable(zoomWidthId[mode]));
+		//btn_zoom_n1.setBackgroundColor(Color.TRANSPARENT);
+		//btn_zoom_n2.setImageDrawable(getResources().getDrawable(zoomWidthId[mode]));
+		//btn_zoom_n2.setBackgroundColor(Color.TRANSPARENT);
+		//btn_zoom_n3.setImageDrawable(getResources().getDrawable(zoomWidthId[mode]));
+		//btn_zoom_n3.setBackgroundColor(Color.TRANSPARENT);
+		//btn_zoom_n4.setImageDrawable(getResources().getDrawable(zoomWidthId[mode]));
+		//btn_zoom_n4.setBackgroundColor(Color.TRANSPARENT);
+/*
+		zoomLayout.addView(btn_zoom_n1);
+		zoomLayout.addView(btn_zoom_p1);
+		zoomLayout.addView(btn_zoom_n2);
+		zoomLayout.addView(btn_zoom_p2);
+		zoomLayout.addView(btn_zoom_n3);
+		zoomLayout.addView(btn_zoom_p3);
+		zoomLayout.addView(btn_zoom_n4);
+		zoomLayout.addView(btn_zoom_p4);
+		zoomLayout.addView(btn_zoom_n5);
+		zoomLayout.addView(btn_zoom_p5);
+		zoomLayout.addView(btn_zoom_n6);
+		zoomLayout.addView(btn_zoom_p6);
+		
+		zoomLayout.addView(btn_zoom_f);
+		zoomLayout.addView(btn_zoom_e);
+*/
+		zoomLayout.addView(btn_zoom_n1, (int)(33 * metrics.density), (int)(50 * metrics.density));		
+		zoomLayout.addView(btn_zoom_p1, (int)(33 * metrics.density), (int)(50 * metrics.density));
+		zoomLayout.addView(btn_zoom_n2, (int)(33 * metrics.density), (int)(50 * metrics.density));		
+		zoomLayout.addView(btn_zoom_p2, (int)(33 * metrics.density), (int)(50 * metrics.density));		
+		zoomLayout.addView(btn_zoom_n3, (int)(33 * metrics.density), (int)(50 * metrics.density));
+		zoomLayout.addView(btn_zoom_p3, (int)(33 * metrics.density), (int)(50 * metrics.density));		
+		zoomLayout.addView(btn_zoom_n4, (int)(33 * metrics.density), (int)(50 * metrics.density));
+		zoomLayout.addView(btn_zoom_p4, (int)(44 * metrics.density), (int)(50 * metrics.density));
+		zoomLayout.addView(btn_zoom_n5, (int)(33 * metrics.density), (int)(50 * metrics.density));
+		zoomLayout.addView(btn_zoom_p5, (int)(44 * metrics.density), (int)(50 * metrics.density));
+		zoomLayout.addView(btn_zoom_n6, (int)(33 * metrics.density), (int)(50 * metrics.density));
+		zoomLayout.addView(btn_zoom_p6, (int)(44 * metrics.density), (int)(50 * metrics.density));
+		zoomLayout.addView(btn_zoom_f,  (int)(44 * metrics.density), (int)(50 * metrics.density));
+		zoomLayout.addView(btn_zoom_e,  (int)(44 * metrics.density), (int)(50 * metrics.density));
+		
+		
+        zoomDownButton = new Button(this);
+		zoomWidthButton = new Button(this);
+		zoomUpButton = new Button(this);
+		//zoomDownButton.setImageDrawable(getResources().getDrawable(zoomDownId[mode]));
+		//zoomDownButton.setBackgroundColor(Color.TRANSPARENT);
+		//zoomWidthButton.setImageDrawable(getResources().getDrawable(zoomWidthId[mode]));
+		//zoomWidthButton.setBackgroundColor(Color.TRANSPARENT);		
+		//zoomUpButton.setImageDrawable(getResources().getDrawable(zoomUpId[mode]));
+		//zoomUpButton.setBackgroundColor(Color.TRANSPARENT);
+		
+		zoomDownButton.setText("[-");
+		zoomWidthButton.setText("<>");
+		zoomUpButton.setText("+]");
+		zoomLayout.addView(zoomDownButton, (int)(44 * metrics.density), (int)(50 * metrics.density));	// TODO: remove hardcoded values
+		zoomLayout.addView(zoomWidthButton, (int)(44 * metrics.density), (int)(50 * metrics.density));
+		zoomLayout.addView(zoomUpButton, (int)(44 * metrics.density), (int)(50 * metrics.density));
+// -LS;
+
+/*		
+        zoomDownButton = new ImageButton(this);
 		zoomDownButton.setImageDrawable(getResources().getDrawable(zoomDownId[mode]));
 		zoomDownButton.setBackgroundColor(Color.TRANSPARENT);
 		zoomLayout.addView(zoomDownButton, (int)(80 * metrics.density), (int)(50 * metrics.density));	// TODO: remove hardcoded values
@@ -949,6 +1171,7 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
 		zoomUpButton.setImageDrawable(getResources().getDrawable(zoomUpId[mode]));
 		zoomUpButton.setBackgroundColor(Color.TRANSPARENT);
 		zoomLayout.addView(zoomUpButton, (int)(80 * metrics.density), (int)(50 * metrics.density));
+*/		
 		RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
         		RelativeLayout.LayoutParams.WRAP_CONTENT, 
         		RelativeLayout.LayoutParams.WRAP_CONTENT);
