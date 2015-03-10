@@ -192,7 +192,10 @@ public class PagesView extends View implements
 	private boolean nook2 = false;
 	private LinearLayout zoomLayout = null;
 
-
+// +ls; 2013-02-07;
+	private boolean ispagetap = false;
+//	-ls;
+	
 	public PagesView(Activity activity) {
 		super(activity);
 		this.activity = activity;
@@ -286,7 +289,7 @@ public class PagesView extends View implements
 			public boolean onDoubleTapEvent(MotionEvent e) {
 				return false;
 			}
-
+// !ls; single tap;
 			public boolean onSingleTapConfirmed(MotionEvent e) {
     			if (mtDebounce + 600 > SystemClock.uptimeMillis()) 
     				return false;
@@ -298,6 +301,7 @@ public class PagesView extends View implements
 					pagesView.invalidate();
 				}
 				
+				// check if in the zoomlayout area; if true, then ignore;
 				if (zoomLayout != null) {
 					Rect r = new Rect();
 					
@@ -309,7 +313,27 @@ public class PagesView extends View implements
 						return false;
 				}
 				
-				return doAction(actions.getAction(e.getY() < height / 2 ? Actions.TOP_TAP : Actions.BOTTOM_TAP));
+			// +ls; 2013-02-06; 22:55;
+				Rect upleft = new Rect();
+				Rect upright = new Rect();
+				Rect downleft = new Rect();
+				Rect downright = new Rect();
+				
+				upleft.set(0, height / 4, 100, height / 2);
+				upright.set(width - 100, height/4, width, height/2);
+				downleft.set(0, height/2, 100, height*3/4);
+				downright.set(width-100, height/2, width, height*3/4);
+				
+				if( upleft.contains((int)e.getX(), (int)e.getY()) || 
+					upright.contains((int)e.getX(), (int)e.getY()) )
+					return doAction(actions.getAction(Actions.TOP_TAP));
+				if( downleft.contains((int)e.getX(), (int)e.getY()) || 
+					downright.contains((int)e.getX(), (int)e.getY()) )
+					return doAction(actions.getAction(Actions.BOTTOM_TAP));
+				
+				return false;
+				//return doAction(actions.getAction(e.getY() < height / 2 ? Actions.TOP_TAP : Actions.BOTTOM_TAP));
+			// -ls;
 			}
 		});
 	}
@@ -828,6 +852,7 @@ public class PagesView extends View implements
 	        }
 			else if (event.getAction() == MotionEvent.ACTION_MOVE){
 				if (this.mtZoomActive && AndroidReflections.getMotionEventPointerCount(event) >= 2) {
+				// !ls; double points tab move;
 					float d = distance(event);
 					if (d > 20f) {
 						d = .6f * this.mtLastDistance + .4f * d;
@@ -841,6 +866,7 @@ public class PagesView extends View implements
 					}
 				}
 				else {
+				// !ls; single point move;
 					if (lockedVertically && unlocksVerticalLock(event)) 
 						lockedVertically = false;
 					
@@ -1308,12 +1334,13 @@ public class PagesView extends View implements
 				miny, maxy);
 		invalidate();
 	}
-	
-	private void doScroll(int dx, int dy) {
+// +ls;
+	public void doScroll(int dx, int dy) {
 		this.left += dx;
 		this.top += dy;
 		invalidate();
 	}
+// -ls;
 	
 	/**
 	 * Zoom down one level
@@ -1474,6 +1501,70 @@ public class PagesView extends View implements
 		this.doubleTapAction = doubleTapAction;
 	}
 	
+// +ls; 2013-02-06;
+	public void doActionZoom( int n )
+	{		
+		float zoomvalue = 1f + n * 0.01f;
+		
+		if(0f < zoomvalue )
+		{
+			zoom( zoomvalue );
+		}
+	}
+// -ls;
+		// +ls; 
+	public void ls_setupdowntap()
+    {
+    	if( ispagetap )
+    		ispagetap = false;
+    	else
+    		ispagetap = true;
+    }
+	private void action_updown( boolean updown )
+	{
+		if( ispagetap )
+			action_page( updown );
+		else
+			action_screen( updown );
+	}
+	private void action_screen( boolean down )
+	{
+		if( down )
+		{
+			this.top += this.getHeight() - 80;//16;
+		}
+		else
+		{
+		// +ls; 2013-02-06;
+			this.top -= this.getHeight() - 80;//16; //
+		// -ls;			
+		}
+		this.invalidate();
+	}
+	private void gotoPage(int page) {
+		int curpage = currentPage;//getCurrentPage();
+		int gopage = curpage + page;	// ls, 2013-02-06;
+		//if( gopage < 0 ) gopage = 0;
+		
+    	//Log.i(TAG, "rewind to page " + page);
+    	//if (this.pagesView != null) {
+    	scrollToPage(gopage, true);
+        //    showAnimated(true);
+    	//}
+    }
+	private void action_page( boolean down )
+	{
+		OpenFileActivity openFileActivity = (OpenFileActivity)activity;
+		if( down )
+			openFileActivity.ls_pagerelative( 1 );
+			//gotoPage(1);//scrollToPage(currentPage + 1 +1);
+		else
+			openFileActivity.ls_pagerelative( -1 );
+			//gotoPage(-1);//scrollToPage(currentPage - 1 +1);
+		
+	}
+// -ls;
+	
 	public boolean doAction(int action) {
 		float zoomValue = Actions.getZoomValue(action);
 		if (0f < zoomValue) {
@@ -1488,18 +1579,17 @@ public class PagesView extends View implements
 			scrollToPage(currentPage - 1, false);
 			return true;
 		case Actions.ACTION_PREV_PAGE:
-			scrollToPage(currentPage - 1);
+			action_updown( true);
 			return true;
 		case Actions.ACTION_NEXT_PAGE:
-			scrollToPage(currentPage + 1);
+			action_updown( false );
 			return true;
 		case Actions.ACTION_SCREEN_DOWN:
-			this.top += this.getHeight() - 16;
-			this.invalidate();
+			action_updown( true );
+			//this.invalidate();
 			return true;
 		case Actions.ACTION_SCREEN_UP:
-			this.top -= this.getHeight() - 16;
-			this.invalidate();
+			action_updown( false );
 			return true;
 		default:
 			return false;
