@@ -1,9 +1,11 @@
 package cx.hell.android.lib.pagesview;
 
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -14,8 +16,11 @@ import android.graphics.Color;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Paint;
+import android.graphics.Paint.FontMetrics;
+import android.graphics.Paint.Style;
 import android.graphics.Point;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -1377,6 +1382,7 @@ public class PagesView extends View implements
 		{
 			public boolean onDoubleTap(MotionEvent e) 
 			{
+				ls_onDoubleTap(e.getX(), e.getY()); // +ls@150310;
 				switch(doubleTapAction) {
 				case Options.DOUBLE_TAP_ZOOM_IN_OUT:
 					if (zoomToRestore != 0) {
@@ -1412,6 +1418,8 @@ public class PagesView extends View implements
 			// !ls; single tap;
 			public boolean onSingleTapConfirmed(MotionEvent e) 
 			{
+				if( ls_onSingleTap(e.getX(), e.getY())) // +ls@150310;
+					return true;
 				//final Activity activity = this.activity;
 				
     			if (mtDebounce + 600 > SystemClock.uptimeMillis()) 
@@ -1481,12 +1489,212 @@ public class PagesView extends View implements
 		this.isdraw = true;
 		invalidate();
 	}
+	// +ls@150310;
+	class LsMarkInfo{
+		LsMarkInfo() {
+			mid = 0;
+		}
+		int mid;
+		int mpage;
+		int mpos;
+		Rect mrc;
+		RectF mrcf;
+	};
+	class LsMark{
+		LsMark()
+		{
+			mbk.setColor(Color.BLACK);
+			mbk.setStyle(Style.STROKE);
+			
+			mbarrc.left = 0;
+			mbarrc.right = mwid;
+			mbarrc.top = 0;
+			mbarrc.bottom = 0;
+		}
+		int mcount = 0;
+//		TreeMap<String, Integer> treemap = new TreeMap<String, Integer>(new Comparator<String>() {
+//		    public int compare(String o1, String o2) {
+//		        return o1.toLowerCase().compareTo(o2.toLowerCase());
+//		    }
+//		});
+//		Map<Integer, String> treeMap = new TreeMap<Integer, String>(
+//				new Comparator<Integer>() {
+//	 
+//				@Override
+//				public int compare(Integer o1, Integer o2) {
+//					return o2.compareTo(o1);
+//				}
+//	 
+//			});
+		TreeMap<Integer, LsMarkInfo> mmarks = new TreeMap<Integer, LsMarkInfo>(
+				new Comparator<Integer>() {					 
+					public int compare(Integer o1, Integer o2) {
+						return o1.compareTo(o2);
+					}
+				}
+				);
+		public LsMarkInfo find(int page)
+		{
+			LsMarkInfo info= null;
+			Integer i=0;
+			Iterator it = mmarks.keySet().iterator();
+			while(it.hasNext()){
+				i = (Integer) it.next();
+				info = mmarks.get(i);
+				if( info.mpage == page )
+					return info;
+			}
+			return null;
+		}
+		public LsMarkInfo find(float x, float y)
+		{
+			LsMarkInfo info= null;
+			RectF rc;
+			Integer i=0;
+			Iterator it = mmarks.keySet().iterator();
+			while(it.hasNext()){
+				i = (Integer) it.next();
+				info = mmarks.get(i);
+				if( isInRectF(x,y,info.mrcf))
+					return info;
+			}
+			return null;
+		}
+		public void addMark(int page)
+		{
+			
+			LsMarkInfo info = find(page);
+			if( info !=null ) // already exist;
+				return;
+			
+			info = new LsMarkInfo();
+			info.mid = page;//mcount;
+			info.mpage = page;
+			RectF rcf = new RectF();
+			rcf.left = 0;
+			rcf.right = mwid;
+			rcf.top = 0;
+			rcf.bottom = 0;
+			info.mrcf = rcf;
+			
+			//mmarks.put(mcount++, info);
+			mmarks.put(page, info);
+		}
+		public void delMark(Integer key)
+		{
+			mmarks.remove(key);
+		}
+		
+		int mwid = 40;
+		int mminnum = 10;
+		int mmarkhei = 40;
+		//int mmarknum = 0;
+		public Paint mbk = new Paint();
+		public Rect mbarrc = new Rect();
+		boolean isInRect(float x, float y, Rect rc)
+		{
+			return ((x>=rc.left) && (x<=rc.right) 
+					&& (y>=rc.top) && (y<=rc.bottom));
+		}
+		boolean isInRectF(float x, float y, RectF rcf)
+		{
+			return ((x>=rcf.left) && (x<=rcf.right) 
+					&& (y>=rcf.top) && (y<=rcf.bottom));
+		}
+		
+		public void drawMark(Canvas canvas) {
+			
+			if( mmarks.isEmpty() )
+				return;
+			
+			int cnt = mmarks.size();
+			if( cnt < mminnum )
+				cnt = mminnum;
+			int h = (int)((double)(mbarrc.bottom)/(double)(cnt+1));
+			
+			LsMarkInfo info= null;
+			Integer i=0;
+			Iterator it = mmarks.keySet().iterator();
+			int pos = h;
+			while(it.hasNext()){
+				i = (Integer) it.next();
+				info = mmarks.get(i);
+				//System.out.println(">ls_drawMark()" + info.mpage);
+				info.mrcf.top = pos;
+				info.mrcf.bottom = info.mrcf.top + mmarkhei;
+				//canvas.drawOval(info.mrcf, mbk);
+				//paint.setTextAlign(Paint.Align.CENTER);
+				//textPaint.setTextSize( 35);
+				
+				 
+				//canvas.drawRect(info.mrcf, mbk);
+				//targetRect.top + (targetRect.bottom - targetRect.top) / 2 
+				//- (FontMetrics.bottom - FontMetrics.top) / 2 - FontMetrics.top;
+				FontMetrics fm = mbk.getFontMetrics(); 
+				float fh = fm.bottom - fm.top;
+				//float offy = 
+				pos = (int) (info.mrcf.top + info.mrcf.height()/2 - fh/2 - fm.top);
+				canvas.drawText(((Integer)(info.mpage)).toString(), 0, pos, mbk);
+				pos += h;
+			}
+			
+		}
+	};
+	LsMark mlsmark = new LsMark();
+	
+	boolean ls_onSingleTap(float x, float y)
+	{
+		//Log.i("lsinfo", ">ls_onSingleTap().");
+		//System.out.println(">ls_onSingleTap().");
+		if(mlsmark.isInRect(x, y, mlsmark.mbarrc))
+		{
+			LsMarkInfo info = mlsmark.find(x,y);
+			if( info != null )
+			{
+				this.scrollToPage(info.mpage, true);
+			}
+			return true;
+		}
+		else
+			return false;
+	}
+	void ls_onDoubleTap(float x, float y)
+	{
+		//Log.i("lsinfo", ">ls_onDoubleTap().");
+		//System.out.println(">ls_onDoubleTap().");
+		if(!mlsmark.isInRect(x, y, mlsmark.mbarrc))
+		{
+			mlsmark.addMark(this.currentPage);
+			this.ls_invalidate();
+		}
+		else
+		{
+			LsMarkInfo info = mlsmark.find(x,y);
+			if( info != null )
+			{
+				mlsmark.delMark(info.mid);
+				this.ls_invalidate();
+			}
+		}
+	}
+	void ls_onDraw(Canvas canvas){
+		
+		// update bar;
+		//mlsmark.mbarrc.top = getHeight()/2;
+		mlsmark.mbarrc.bottom = getHeight();
+		
+		mlsmark.drawMark(canvas);
+	}
+	
+	
 	public void onDraw(Canvas canvas) {
 		if (this.nook2) {
 			N2EpdController.setGL16Mode();
 		}
 		this.drawPages(canvas);
 		if (this.findMode) this.drawFindResults(canvas);
+		
+		ls_onDraw(canvas); // +ls@150310;
 	}
 
 	/**
