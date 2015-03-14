@@ -1757,6 +1757,15 @@ public class PagesView extends View implements
 			setToptapPos();	
 			setBottomtapPos();
 		}
+		int calCenterTop(int num, int h)
+		{
+			if(num >= mminnum )
+				return h;
+			else
+			{
+				return h + (mminnum-num)/2*h;
+			}
+		}
 		public void drawMark(Canvas canvas) {
 			
 			if( mmarks.isEmpty() )
@@ -1779,7 +1788,8 @@ public class PagesView extends View implements
 			LsMarkInfo info= null;
 			Integer i=0;
 			Iterator it = mmarks.keySet().iterator();
-			int pos = h;//mmarkhei*2;//h;
+			//int pos = h;//mmarkhei*2;//h;
+			int pos = calCenterTop(mmarks.size(), h);
 			while(it.hasNext()){
 				i = (Integer) it.next();
 				info = mmarks.get(i);
