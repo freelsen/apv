@@ -60,7 +60,7 @@
 		<item>fade</item>
 		<item>show always</item>
 	</string-array>
-	<string name="default_page_animation">2</string> 
+	<string name="default_page_animation">100</string> 
 	<string name="fade_speed">Zoom and page fade wait</string>
 	<string-array name="fade_speeds">
 		<item>10</item>
@@ -80,7 +80,7 @@
 		<item>500 seconds</item>
 		<item>1000 seconds</item>
 	</string-array>
-	<string name="default_fade_speed">7</string> 
+	<string name="default_fade_speed">1000</string> 
 	<string name="invert">Invert colors</string>
 	<string name="dirs_first">List directories first</string>
 	<string name="show_extension">Show .pdf extension</string>
@@ -165,7 +165,7 @@
 		<item>8 MB</item>
 		<item>10 MB</item>
 	</string-array>
-	<string name="default_extra_cache">0</string>
+	<string name="default_extra_cache">4</string>
 	<string name="side_margin">Extra side margins</string>	
 	<string name="default_side_margin">0</string>
 		<string-array name="margins">
@@ -181,7 +181,7 @@
 	<item>large</item>
 	</string-array>
 	<string name="top_margin">Space between pages</string>
-	<string name="default_top_margin">10</string>
+	<string name="default_top_margin">0</string>
 	<string name="remove_from_recent">Remove from recent</string>
 	<string name="delete">Delete file</string>
 	<string-array name = "double_tap_actions">
@@ -194,7 +194,7 @@
 	<item>zoom in</item>
 	<item>zoom in or back out</item>
 	</string-array>
-	<string name="default_double_tap_action">2</string>
+	<string name="default_double_tap_action">0</string>
 	<string name="double_tap_action">Double tap action</string>
 	<string-array name = "action_pairs">
 	<item>0</item>
@@ -239,7 +239,7 @@
 	<string name="default_zoom_pair">7</string>
 	<string name="default_long_zoom_pair">8</string>
 	<string name="default_right_up_down_pair">1</string>
-	<string name="default_top_bottom_tap_pair">0</string>
+	<string name="default_top_bottom_tap_pair">1</string>
 	<string name="hw">Hardware Specific Settings</string>
 	<string name="eink">E-ink optimizations</string>
 	<string name="nook2">Nook2 fast e-ink refresh</string>

@@ -22,7 +22,7 @@
     	
     <CheckBoxPreference
     	android:title="@string/fullscreen"
-    	android:defaultValue="false"
+    	android:defaultValue="true"
     	android:key="fullscreen"/>
 
     <ListPreference
@@ -63,7 +63,7 @@
     <CheckBoxPreference
     	android:title="@string/vertical_scroll_lock"
     	android:summary="@string/vertical_scroll_lock_sub"
-    	android:defaultValue="false"
+    	android:defaultValue="true"
     	android:key="verticalScrollLock"/>
 
     <CheckBoxPreference
@@ -173,7 +173,7 @@
     	android:key="dirsFirst"/>
     <CheckBoxPreference
     	android:title="@string/show_extension"
-    	android:defaultValue="false"
+    	android:defaultValue="true"
     	android:key="showExtension"/>
     <CheckBoxPreference
     	android:title="@string/history"
