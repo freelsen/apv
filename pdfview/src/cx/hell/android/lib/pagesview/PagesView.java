@@ -17,6 +17,7 @@ import android.graphics.Color;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Paint;
+import android.graphics.Paint.Align;
 import android.graphics.Paint.FontMetrics;
 import android.graphics.Paint.Style;
 import android.graphics.Point;
@@ -1545,6 +1546,15 @@ public class PagesView extends View implements
 	class LsMark{
 		float mfontsizesp = 12;
 		int mfontsizepx = 12;
+		int mlocation = 0; // 0=left; 1=right;;
+		
+		int mminnum = 10;
+		
+		//int mmarknum = 0;
+		public Paint mbk = new Paint();
+		public Rect mbarrc = new Rect();
+		public Rect mbartoprc = new Rect();
+		Rect mbottomrc = new Rect();
 		
 		LsMark()
 		{
@@ -1552,11 +1562,49 @@ public class PagesView extends View implements
 			mbk.setStyle(Style.STROKE);
 			scaleSize(1);
 			
-			mbarrc.left = 0;
-			mbarrc.right = mwid;
-			mbarrc.top = 0;
-			mbarrc.bottom = 0;
+			initBarRect(mbarrc);
+			setLocation(1);
 		}
+		void initBarRect(Rect rc )
+		{
+			rc.left = 0;
+			rc.right = mwid;
+			rc.top = 0;
+			rc.bottom = 0;
+		}
+		void initMarkRect(RectF rcf)
+		{
+			rcf.left = 0;
+			rcf.right = mwid;
+			rcf.top = 0;
+			rcf.bottom = 0;
+		}
+		void setLocation(int loc)
+		{
+			mlocation = loc;
+			if( mlocation == 0)
+			{
+				mbk.setTextAlign(Align.LEFT);
+			}
+			else
+			{
+				mbk.setTextAlign(Align.RIGHT);
+			}
+		}
+		public boolean checkBottomTap(float x, float y)
+		{
+			if( LsCom.isInRect(x, y, mbottomrc))
+			{
+				// change location;
+				int loc = (mlocation == 0 ) ? 1: 0;
+				setLocation(loc);
+				
+				return true;
+			}
+			else
+				return false;
+		}
+		
 		int mcount = 0;
 
 		TreeMap<Integer, LsMarkInfo> mmarks = new TreeMap<Integer, LsMarkInfo>(
@@ -1593,6 +1641,7 @@ public class PagesView extends View implements
 			}
 			return null;
 		}
+		
 		public void addMark(int page)
 		{
 			
@@ -1604,10 +1653,7 @@ public class PagesView extends View implements
 			info.mid = page;//mcount;
 			info.mpage = page;
 			RectF rcf = new RectF();
-			rcf.left = 0;
-			rcf.right = mwid;
-			rcf.top = 0;
-			rcf.bottom = 0;
+			initMarkRect(rcf);
 			info.mrcf = rcf;
 			
 			//mmarks.put(mcount++, info);
@@ -1625,13 +1671,6 @@ public class PagesView extends View implements
 			mmarkhei = mfontsizepx * 2;
 			mwid = mfontsizepx * 2;
 		}
-		
-		int mminnum = 10;
-		
-		//int mmarknum = 0;
-		public Paint mbk = new Paint();
-		public Rect mbarrc = new Rect();
-		public Rect mbartoprc = new Rect();
 		
 		int sp2px(float sp)
 		{
@@ -1660,11 +1699,74 @@ public class PagesView extends View implements
 			setFontSize(idx);
 			setMarkSize();
 		}
+		void setBarPos()
+		{
+			if(mlocation == 0) // lseft;
+			{
+				mbarrc.left = 0;
+				mbarrc.right = mbarrc.left+mwid;
+			}
+			else if ( mlocation == 1) // right;
+			{
+				mbarrc.right = getWidth();
+				mbarrc.left = mbarrc.right - mwid;
+			}
+			mbarrc.bottom = getHeight();
+
+		}		
+		void setToptapPos()
+		{
+			mbartoprc.set(mbarrc);//= mlsmark.mbarrc;
+			if( mlocation == 0 ) // left;
+			{
+				mbartoprc.right += mbarrc.width();//*=2;		
+			}
+			else if( mlocation == 1) // right;
+			{
+				//mbartoprc.right -= mbarrc.width();
+				mbartoprc.left -= mbarrc.width();
+			}
+			mbartoprc.bottom = mmarkhei;
+		}
+		void setBottomtapPos()
+		{
+			mbottomrc.set(mbarrc);//= mlsmark.mbarrc;
+			if( mlocation == 0 ) // left;
+			{
+				mbottomrc.right += mbarrc.width();//*=2;				
+			}
+			else if( mlocation == 1) // right;
+			{
+				mbottomrc.left -= mbarrc.width();
+			}
+			mbottomrc.top = mbottomrc.bottom - mmarkhei;
+		}
+		void setMarkPos(RectF rcf, int top, float hei)
+		{
+			rcf.top = top;
+			rcf.bottom = rcf.top + hei;//fonth;//3*mmarkhei;//h;
+			
+			rcf.left = mbarrc.left;
+			rcf.right = mbarrc.right;	
+		}
+		
+		public void updateMarkbar()
+		{
+			setBarPos();
+			//canvas.drawRect(mbarrc, mbk);		
+			setToptapPos();	
+			setBottomtapPos();
+		}
 		public void drawMark(Canvas canvas) {
 			
 			if( mmarks.isEmpty() )
 				return;
 			// 
+//			canvas.drawRect(mbarrc, mbk);
+//			Log.i("ls>", "barpos="+ (Integer)mbarrc.left+"," +(Integer)mbarrc.right+","
+//					+(Integer)mbarrc.top+","+(Integer)mbarrc.bottom);
+//			canvas.drawRect(mbartoprc, mbk);
+			//canvas.drawRect(mbottomrc, mbk);
 			
 			int cnt = mmarks.size();
 			if( cnt < mminnum )
@@ -1682,22 +1784,26 @@ public class PagesView extends View implements
 				i = (Integer) it.next();
 				info = mmarks.get(i);
 				//System.out.println(">ls_drawMark()" + info.mpage);
-				info.mrcf.top = pos;
-				info.mrcf.bottom = info.mrcf.top + fonth;//3*mmarkhei;//h;
-				info.mrcf.right = mbarrc.right;
+				setMarkPos( info.mrcf, pos, fonth);
+				//canvas.drawRect(info.mrcf, mbk);
 				//canvas.drawOval(info.mrcf, mbk);
-				//paint.setTextAlign(Paint.Align.CENTER);
-				drawText(canvas, info.mrcf.top + info.mrcf.height()/2, ((Integer)(info.mpage)).toString());
+								
+				drawText(canvas, info.mrcf, ((Integer)(info.mpage)).toString());
 				
 				pos += h;
 			}	
 		}
-		void drawText(Canvas canvas, float center, String text)
+		
+		void drawText(Canvas canvas, RectF rcf, String text)
 		{
+			float center = rcf.top + rcf.height()/2;
 			FontMetrics fm = mbk.getFontMetrics();	
 			float fh = fm.bottom - fm.top;
 			int fpos = (int) ( center - fh/2 - fm.top);
-			canvas.drawText(text, 0, fpos, mbk);
+			if( mlocation == 0) 	// left;
+				canvas.drawText(text, rcf.left, fpos, mbk);
+			else if( mlocation==1)	// align right;
+				canvas.drawText(text, rcf.right, fpos, mbk);
 		}
 	};
 	class LsDrag{
@@ -1806,6 +1912,11 @@ public class PagesView extends View implements
 				ls_invalidate();
 				return true;
 			}
+			if( mlsmark.checkBottomTap(x,y))
+			{
+				ls_invalidate();
+				return true;
+			}
 			if(!LsCom.isInRect(x, y, mlsmark.mbarrc))
 			{
 			//	Log.i("lsinfo", ">ls_onDoubleTap(). 2");
@@ -1828,15 +1939,7 @@ public class PagesView extends View implements
 		}
 		public void ls_onDraw(Canvas canvas){
 			
-			//
-			mlsmark.mbarrc.right = mlsmark.mwid;
-			mlsmark.mbarrc.bottom = getHeight();
-			//canvas.drawRect(mlsmark.mbarrc, mlsmark.mbk);
-			
-			mlsmark.mbartoprc.set(mlsmark.mbarrc);//= mlsmark.mbarrc;
-			mlsmark.mbartoprc.right *=2;
-			mlsmark.mbartoprc.bottom = mlsmark.mmarkhei;
-			//canvas.drawRect(mlsmark.mbartoprc, mlsmark.mbk);
+			mlsmark.updateMarkbar();
 			
 			mlsmark.drawMark(canvas);
 		}
