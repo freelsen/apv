@@ -231,10 +231,7 @@ public class PagesView extends View implements
 		this.scroller = null; // new Scroller(activity);
 
 		ls_createGestureDetector(); //@2013-07-24;		
-		//	final OpenFileActivity openFileActivity = (OpenFileActivity)activity;
-		//final PagesView pagesView = this;		
-		ls_setGestureDetector(); //@2013-07-24;
-		
+		//ls_setGestureDetector(); //@2013-07-24;
 	}
 	
 	// set start book mark(); @2013-07-24;
@@ -449,6 +446,8 @@ public class PagesView extends View implements
 				maxExcursionY = 0;
 				maxExcursionX = 0;
 				scroller = null;
+				
+				mlsfun.onDragStart(event.getX(),event.getY());	// +ls@150314;
 			}
 	        else if (event.getAction() == MotionEvent.ACTION_POINTER_2_DOWN
 	        		&& AndroidReflections.getMotionEventPointerCount(event) >= 2) {
@@ -482,6 +481,9 @@ public class PagesView extends View implements
 						lockedVertically = false;
 					if( lockedHoriz && unlocksHoriz(event))	// +ls @2013-07-24;
 						lockedHoriz = false;
+					
+					if( mlsfun.onDragging(event.getX(),event.getY()))	// +ls@150314;
+						return true;
 					
 					float dx = event.getX() - lastX;
 					float dy = event.getY() - lastY;
@@ -523,6 +525,7 @@ public class PagesView extends View implements
 					this.mtZoomActive = false;
 					zoom(this.mtZoomValue);
 				}
+				mlsfun.onDragEnd(event.getX(),event.getY());	// +ls@150314;
 			}						
 		}
 		return true;
@@ -1371,132 +1374,137 @@ public class PagesView extends View implements
 						return false;
 					}
 		});
+		gestureDetector.setOnDoubleTapListener( mlsdbtablistener );	// +ls@150314;
 	}
-	private void ls_setGestureDetector()
+	class LsOnDoubleTapListener implements OnDoubleTapListener
 	{
-		final OpenFileActivity openFileActivity = (OpenFileActivity)activity;
-		final PagesView pagesView = this;
 
-		// !ls; double click;		
-		gestureDetector.setOnDoubleTapListener(
-		new OnDoubleTapListener() 
+		public boolean onDoubleTap(MotionEvent e) 
 		{
-			public boolean onDoubleTap(MotionEvent e) 
-			{
-				if(mlsfun.ls_onDoubleTap(e.getX(), e.getY())) // +ls@150310;
-					return true;
-				switch(doubleTapAction) {
-				case Options.DOUBLE_TAP_ZOOM_IN_OUT:
-					if (zoomToRestore != 0) {
-						left = leftToRestore;
-						top = top * zoomToRestore / zoomLevel;
-						zoomLevel = zoomToRestore;
-						ls_invalidate();
-						zoomToRestore = 0;
-					}
-					else {
-						int oldLeft = left;
-						int oldZoom = zoomLevel;
-						left += e.getX() - width/2;
-						top += e.getY() - height/2;
-						zoom(2f);
-						zoomToRestore = oldZoom;
-						leftToRestore = oldLeft;
-					}
-					return true;
-				case Options.DOUBLE_TAP_ZOOM:
+			if(mlsfun.ls_onDoubleTap(e.getX(), e.getY())) // +ls@150310;
+				return true;
+			switch(doubleTapAction) {
+			case Options.DOUBLE_TAP_ZOOM_IN_OUT:
+				if (zoomToRestore != 0) {
+					left = leftToRestore;
+					top = top * zoomToRestore / zoomLevel;
+					zoomLevel = zoomToRestore;
+					ls_invalidate();
+					zoomToRestore = 0;
+				}
+				else {
+					int oldLeft = left;
+					int oldZoom = zoomLevel;
 					left += e.getX() - width/2;
 					top += e.getY() - height/2;
 					zoom(2f);
-					return true;
-				default:
-					return false;
+					zoomToRestore = oldZoom;
+					leftToRestore = oldLeft;
 				}
+				return true;
+			case Options.DOUBLE_TAP_ZOOM:
+				left += e.getX() - width/2;
+				top += e.getY() - height/2;
+				zoom(2f);
+				return true;
+			default:
+				return false;
 			}
+		}
 
-			public boolean onDoubleTapEvent(MotionEvent e) {
-				return false;
-			}
-			// !ls; single tap;
-			public boolean onSingleTapConfirmed(MotionEvent e) 
-			{
-				if( mlsfun.ls_onSingleTap(e.getX(), e.getY())) // +ls@150310;
-					return true;
-				//final Activity activity = this.activity;
+		public boolean onDoubleTapEvent(MotionEvent e) {
+			return false;
+		}
+		// !ls; single tap;
+		public boolean onSingleTapConfirmed(MotionEvent e) 
+		{
+			if( mlsfun.ls_onSingleTap(e.getX(), e.getY())) // +ls@150310;
+				return true;
+			//final Activity activity = this.activity;
+			
+			if (mtDebounce + 600 > SystemClock.uptimeMillis()) 
+				return false;				
+			
+		//	if (!showZoomOnScroll) {
+		//		openFileActivity.showZoom();
+		//		ls_invalidate(); // @2013-07-24;pagesView.invalidate();
+		//	}
+			
+			// check if in the zoomlayout area; if true, then ignore;
+			if (zoomLayout != null) {
+				Rect r = new Rect();
 				
-    			if (mtDebounce + 600 > SystemClock.uptimeMillis()) 
-    				return false;				
+				zoomLayout.getDrawingRect(r);
 				
-			//	if (!showZoomOnScroll) {
-			//		openFileActivity.showZoom();
-			//		ls_invalidate(); // @2013-07-24;pagesView.invalidate();
-			//	}
+				r.set(r.left - 5, r.top - 5, r.right + 5, r.bottom + 5);
 				
-				// check if in the zoomlayout area; if true, then ignore;
-				if (zoomLayout != null) {
-					Rect r = new Rect();
-					
-					zoomLayout.getDrawingRect(r);
-					
-					r.set(r.left - 5, r.top - 5, r.right + 5, r.bottom + 5);
-					
-					if (r.contains((int)e.getX(), (int)e.getY()))
-						return false;
-				}
-				
-				// +ls; 2013-02-06; 22:55;// <ls; 2013-07-14; 9:22;
-				if( checkAreaBar((int)e.getX(), (int)e.getY()))
-					return true;
-				
-				if( checkAreaUpdown((int)e.getX(), (int)e.getY()))
-					return true;
-				
-				return false;
-				//return doAction(actions.getAction(e.getY() < height / 2 ? Actions.TOP_TAP : Actions.BOTTOM_TAP));
-			// -ls;
-				
-			}
-			boolean checkAreaUpdown(int x, int y)
-			{
-				// top tap detection;
-				Rect rc 	= new Rect();
-				//130921;upright.set(width*2/3, 0, width, height/2);			// 2013-07-14;width - 100, height/4, width, height/2);
-				//rc.set(0, 0, width/3, height/2 ); 				// 2013-07-14; height / 4, 100, height / 2);
-				rc.set(0, 0, width, height/2 ); //+ls@150214;
-				if( rc.contains(x,y) )//  ||  upright.contains((int)e.getX(), (int)e.getY()) )
-				{
-					doAction(actions.getAction(Actions.TOP_TAP));
-					return true;
-				}
-				
-				// bottom tap detection;
-				rc 	= new Rect();
-				//downleft.set(0, height/2, width/3, height); 		// 2013-07-14; height/2, 100, height*3/4);
-				//downright.set(width*2/3, height/2, width, height); 	// 2013-07-14; width-100, height/2, width, height*3/4);
-				rc.set(0, height/2, width, height); // +ls@150214;
-				if( rc.contains(x,y))// || downright.contains((int)e.getX(), (int)e.getY()) )
-				{
-					doAction(actions.getAction(Actions.BOTTOM_TAP));
-					return true;
-				}
-				
-				return false;
-			}
-			boolean checkAreaBar(int x, int y)
-			{
-				// ls bar tap detection;
-				Rect leftbottomcon = new Rect();
-				leftbottomcon.set(width/3, 0, width*2/3, 100); 		// 2013-07-14; 0, height - 100, 100, height);
-				if( leftbottomcon.contains(x,y))//(int)e.getX(), (int)e.getY()))
-				{
-					openFileActivity.ls_onShowHideZoom();
-					return true;
-				}
-				else
+				if (r.contains((int)e.getX(), (int)e.getY()))
 					return false;
 			}
-		});
+			
+			// +ls; 2013-02-06; 22:55;// <ls; 2013-07-14; 9:22;
+			if( checkAreaBar((int)e.getX(), (int)e.getY()))
+				return true;
+			
+			if( checkAreaUpdown((int)e.getX(), (int)e.getY()))
+				return true;
+			
+			return false;
+			//return doAction(actions.getAction(e.getY() < height / 2 ? Actions.TOP_TAP : Actions.BOTTOM_TAP));
+		// -ls;
+			
+		}
+		boolean checkAreaUpdown(int x, int y)
+		{
+			// top tap detection;
+			Rect rc 	= new Rect();
+			//130921;upright.set(width*2/3, 0, width, height/2);			// 2013-07-14;width - 100, height/4, width, height/2);
+			//rc.set(0, 0, width/3, height/2 ); 				// 2013-07-14; height / 4, 100, height / 2);
+			rc.set(0, 0, width, height/2 ); //+ls@150214;
+			if( rc.contains(x,y) )//  ||  upright.contains((int)e.getX(), (int)e.getY()) )
+			{
+				doAction(actions.getAction(Actions.TOP_TAP));
+				return true;
+			}
+			
+			// bottom tap detection;
+			rc 	= new Rect();
+			//downleft.set(0, height/2, width/3, height); 		// 2013-07-14; height/2, 100, height*3/4);
+			//downright.set(width*2/3, height/2, width, height); 	// 2013-07-14; width-100, height/2, width, height*3/4);
+			rc.set(0, height/2, width, height); // +ls@150214;
+			if( rc.contains(x,y))// || downright.contains((int)e.getX(), (int)e.getY()) )
+			{
+				doAction(actions.getAction(Actions.BOTTOM_TAP));
+				return true;
+			}
+			
+			return false;
+		}
+		boolean checkAreaBar(int x, int y)
+		{
+			// ls bar tap detection;
+			Rect leftbottomcon = new Rect();
+			leftbottomcon.set(width/3, 0, width*2/3, 100); 		// 2013-07-14; 0, height - 100, 100, height);
+			if( leftbottomcon.contains(x,y))//(int)e.getX(), (int)e.getY()))
+			{
+				((OpenFileActivity)activity).ls_onShowHideZoom();
+				return true;
+			}
+			else
+				return false;
+		}
+		
 	}
+	LsOnDoubleTapListener mlsdbtablistener = new LsOnDoubleTapListener();
+//	private void ls_setGestureDetector()
+//	{
+//		final OpenFileActivity openFileActivity = (OpenFileActivity)activity;
+//		final PagesView pagesView = this;
+//
+//		// !ls; double click;		
+//		gestureDetector.setOnDoubleTapListener( mlsdbtablistener );	// +ls@150314;
+//		//new LsOnDoubleTapListener());
+//	}
 
 	//=== @2013-07-24,11:40; draw operation ===
 	private void ls_postInvalidate()
@@ -1508,6 +1516,20 @@ public class PagesView extends View implements
 	{
 		this.isdraw = true;
 		invalidate();
+	}
+	// +ls@150314;
+	static class LsCom {
+		public static boolean isInRect(float x, float y, Rect rc)
+		{
+			return ((x>=rc.left) && (x<=rc.right) 
+					&& (y>=rc.top) && (y<=rc.bottom));
+		}
+		public static boolean isInRectF(float x, float y, RectF rcf)
+		{
+			return ((x>=rcf.left) && (x<=rcf.right) 
+					&& (y>=rcf.top) && (y<=rcf.bottom));
+		}
+		
 	}
 	// +ls@150310;
 	class LsMarkInfo{
@@ -1566,7 +1588,7 @@ public class PagesView extends View implements
 			while(it.hasNext()){
 				i = (Integer) it.next();
 				info = mmarks.get(i);
-				if( isInRectF(x,y,info.mrcf))
+				if( LsCom.isInRectF(x,y,info.mrcf))
 					return info;
 			}
 			return null;
@@ -1610,16 +1632,6 @@ public class PagesView extends View implements
 		public Paint mbk = new Paint();
 		public Rect mbarrc = new Rect();
 		public Rect mbartoprc = new Rect();
-		boolean isInRect(float x, float y, Rect rc)
-		{
-			return ((x>=rc.left) && (x<=rc.right) 
-					&& (y>=rc.top) && (y<=rc.bottom));
-		}
-		boolean isInRectF(float x, float y, RectF rcf)
-		{
-			return ((x>=rcf.left) && (x<=rcf.right) 
-					&& (y>=rcf.top) && (y<=rcf.bottom));
-		}
 		
 		int sp2px(float sp)
 		{
@@ -1688,23 +1700,92 @@ public class PagesView extends View implements
 			canvas.drawText(text, 0, fpos, mbk);
 		}
 	};
-	class LsFun{
+	class LsDrag{
+		RectF mdragarea = new RectF();
+		
+		public LsDrag(){
+			mdragarea.left = 0;
+			mdragarea.right = width/2;
+			mdragarea.top = 0;
+			mdragarea.bottom = height;
+		}
+		int mtmgapmin = 10;
+		int mlasttm = 0;
+		float mlastx =0;
+		float mlasty = 0;
+		double mbase = Math.E;//2.7; // e;
+		boolean misfastdrag = false;
+		public boolean onDragStart(float x, float y)
+		{
+			misfastdrag = isDragArea(x,y);
+			
+			mlasttm = (int) lastControlsUseMillis;		// +ls@150103;
+			mlastx = x;
+			mlasty = y;
+			return false;
+		}
+		boolean isDragArea(float x, float y)
+		{
+			mdragarea.right = width/2;
+			mdragarea.bottom = height;
+			return LsCom.isInRectF(x, y, mdragarea);
+		}
+		public boolean onDragging(float x, float y)
+		{
+			// check area;
+			if(!misfastdrag)
+				return false;
+			// check time interval;
+			int tm = (int)lastControlsUseMillis;
+			int dt = tm -mlasttm;
+			if( dt < mtmgapmin )
+				return false;
+			else
+				mlasttm = tm;
+			// cal distance;
+			float dx = x - mlastx;
+			float dy = y - mlasty;
+			mlastx = x;
+			mlasty = y;
+
+			double dis = 0;
+			if( dy >=0 )
+				dis = -Math.pow(dy, mbase);
+			else
+				dis = Math.pow(-dy, mbase);
+			// do scroll;
+			ls_doScroll(0,(int) dis);
+			
+			return true;
+		}
+		public boolean onDragEnd(float x, float y)
+		{
+			mlasttm = 0;
+			mlastx = 0;
+			mlasty = 0;
+			misfastdrag = false;
+			return false;
+		} 
+	}
+	class LsFun{		
+		LsMark mlsmark = new LsMark();
+		LsDrag mlsdrag = new LsDrag();
 		public LsFun()
 		{
 			
 		}
-		boolean ls_onSingleTap(float x, float y)
+		public boolean ls_onSingleTap(float x, float y)
 		{
 			//Log.i("lsinfo", ">ls_onSingleTap().");
 			//System.out.println(">ls_onSingleTap().");
-			if( mlsmark.isInRect(x, y, mlsmark.mbartoprc))
+			if( LsCom.isInRect(x, y, mlsmark.mbartoprc))
 			{
 				mlsmark.scaleSize((float)1.2);
 				
 				ls_invalidate();
 				return true;
 			}
-			if(mlsmark.isInRect(x, y, mlsmark.mbarrc))
+			if(LsCom.isInRect(x, y, mlsmark.mbarrc))
 			{
 				LsMarkInfo info = mlsmark.find(x,y);
 				if( info != null )
@@ -1716,16 +1797,16 @@ public class PagesView extends View implements
 			else
 				return false;
 		}
-		boolean ls_onDoubleTap(float x, float y)
+		public boolean ls_onDoubleTap(float x, float y)
 		{
-			if( mlsmark.isInRect(x, y, mlsmark.mbartoprc))
+			if( LsCom.isInRect(x, y, mlsmark.mbartoprc))
 			{
 				//Log.i("lsinfo", ">ls_onDoubleTap(). 1");
 				mlsmark.scaleSize((float)0.8);
 				ls_invalidate();
 				return true;
 			}
-			if(!mlsmark.isInRect(x, y, mlsmark.mbarrc))
+			if(!LsCom.isInRect(x, y, mlsmark.mbarrc))
 			{
 			//	Log.i("lsinfo", ">ls_onDoubleTap(). 2");
 				mlsmark.addMark(currentPage);
@@ -1745,7 +1826,7 @@ public class PagesView extends View implements
 				return true;
 			}
 		}
-		void ls_onDraw(Canvas canvas){
+		public void ls_onDraw(Canvas canvas){
 			
 			//
 			mlsmark.mbarrc.right = mlsmark.mwid;
@@ -1760,10 +1841,20 @@ public class PagesView extends View implements
 			mlsmark.drawMark(canvas);
 		}
 		
-		
+		public boolean onDragStart(float x, float y)
+		{
+			return mlsdrag.onDragStart(x, y);
+		}
+		public boolean onDragging(float x, float y)
+		{
+			return mlsdrag.onDragging(x, y);
+		}
+		public boolean onDragEnd(float x, float y)
+		{
+			return mlsdrag.onDragEnd(x,y);
+		}
 	}
-	
-	LsMark mlsmark = new LsMark();
+
 	LsFun mlsfun = new LsFun();
 	
 	public void onDraw(Canvas canvas) {
