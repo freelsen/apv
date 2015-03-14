@@ -9,6 +9,7 @@ import java.util.TreeMap;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -1501,10 +1502,14 @@ public class PagesView extends View implements
 		RectF mrcf;
 	};
 	class LsMark{
+		float mfontsizesp = 12;
+		int mfontsizepx = 12;
+		
 		LsMark()
 		{
 			mbk.setColor(Color.BLACK);
 			mbk.setStyle(Style.STROKE);
+			scaleSize(1);
 			
 			mbarrc.left = 0;
 			mbarrc.right = mwid;
@@ -1512,20 +1517,7 @@ public class PagesView extends View implements
 			mbarrc.bottom = 0;
 		}
 		int mcount = 0;
-//		TreeMap<String, Integer> treemap = new TreeMap<String, Integer>(new Comparator<String>() {
-//		    public int compare(String o1, String o2) {
-//		        return o1.toLowerCase().compareTo(o2.toLowerCase());
-//		    }
-//		});
-//		Map<Integer, String> treeMap = new TreeMap<Integer, String>(
-//				new Comparator<Integer>() {
-//	 
-//				@Override
-//				public int compare(Integer o1, Integer o2) {
-//					return o2.compareTo(o1);
-//				}
-//	 
-//			});
+
 		TreeMap<Integer, LsMarkInfo> mmarks = new TreeMap<Integer, LsMarkInfo>(
 				new Comparator<Integer>() {					 
 					public int compare(Integer o1, Integer o2) {
@@ -1585,12 +1577,20 @@ public class PagesView extends View implements
 			mmarks.remove(key);
 		}
 		
-		int mwid = 40;
+		public int mwid = 80;
+		public int mmarkhei = 80;
+		public void setMarkSize()
+		{
+			mmarkhei = mfontsizepx * 2;
+			mwid = mfontsizepx * 2;
+		}
+		
 		int mminnum = 10;
-		int mmarkhei = 40;
+		
 		//int mmarknum = 0;
 		public Paint mbk = new Paint();
 		public Rect mbarrc = new Rect();
+		public Rect mbartoprc = new Rect();
 		boolean isInRect(float x, float y, Rect rc)
 		{
 			return ((x>=rc.left) && (x<=rc.right) 
@@ -1602,42 +1602,71 @@ public class PagesView extends View implements
 					&& (y>=rcf.top) && (y<=rcf.bottom));
 		}
 		
+		int sp2px(float sp)
+		{
+			final float scale = getResources().getDisplayMetrics().scaledDensity;
+			//final int dpi = getResources().getDisplayMetrics().densityDpi;
+			//Log.i(">ls: scale sp=",((Float)scale).toString());
+			return (int)(sp * scale);// + 0.5f);
+		}
+		public int dip2px(float dip){
+			
+			final float scale = getResources().getDisplayMetrics().density;
+			return (int)(dip * scale + 0.5f);
+		}
+		public int px2dip(float px){
+			final float scale =getResources().getDisplayMetrics().density;
+			return (int)(px / scale + 0.5f);
+		}
+		void setFontSize( float idx)
+		{
+			mfontsizesp = idx*mfontsizesp;
+			mfontsizepx = sp2px(mfontsizesp);
+			mbk.setTextSize(mfontsizepx);
+		}
+		public void scaleSize(float idx)
+		{
+			setFontSize(idx);
+			setMarkSize();
+		}
 		public void drawMark(Canvas canvas) {
 			
 			if( mmarks.isEmpty() )
 				return;
+			// 
 			
 			int cnt = mmarks.size();
 			if( cnt < mminnum )
 				cnt = mminnum;
-			int h = (int)((double)(mbarrc.bottom)/(double)(cnt+1));
+			int h = (int)((double)(mbarrc.bottom)/(double)(cnt+2));
+			float fonth = (float) (mmarkhei);//*1.5);
+			if( fonth > h)
+				fonth = h;
 			
 			LsMarkInfo info= null;
 			Integer i=0;
 			Iterator it = mmarks.keySet().iterator();
-			int pos = h;
+			int pos = h;//mmarkhei*2;//h;
 			while(it.hasNext()){
 				i = (Integer) it.next();
 				info = mmarks.get(i);
 				//System.out.println(">ls_drawMark()" + info.mpage);
 				info.mrcf.top = pos;
-				info.mrcf.bottom = info.mrcf.top + mmarkhei;
+				info.mrcf.bottom = info.mrcf.top + fonth;//3*mmarkhei;//h;
+				info.mrcf.right = mbarrc.right;
 				//canvas.drawOval(info.mrcf, mbk);
 				//paint.setTextAlign(Paint.Align.CENTER);
-				//textPaint.setTextSize( 35);
+				drawText(canvas, info.mrcf.top + info.mrcf.height()/2, ((Integer)(info.mpage)).toString());
 				
-				 
-				//canvas.drawRect(info.mrcf, mbk);
-				//targetRect.top + (targetRect.bottom - targetRect.top) / 2 
-				//- (FontMetrics.bottom - FontMetrics.top) / 2 - FontMetrics.top;
-				FontMetrics fm = mbk.getFontMetrics(); 
-				float fh = fm.bottom - fm.top;
-				//float offy = 
-				pos = (int) (info.mrcf.top + info.mrcf.height()/2 - fh/2 - fm.top);
-				canvas.drawText(((Integer)(info.mpage)).toString(), 0, pos, mbk);
 				pos += h;
-			}
-			
+			}	
+		}
+		void drawText(Canvas canvas, float center, String text)
+		{
+			FontMetrics fm = mbk.getFontMetrics();	
+			float fh = fm.bottom - fm.top;
+			int fpos = (int) ( center - fh/2 - fm.top);
+			canvas.drawText(text, 0, fpos, mbk);
 		}
 	};
 	LsMark mlsmark = new LsMark();
@@ -1646,6 +1675,13 @@ public class PagesView extends View implements
 	{
 		//Log.i("lsinfo", ">ls_onSingleTap().");
 		//System.out.println(">ls_onSingleTap().");
+		if( mlsmark.isInRect(x, y, mlsmark.mbartoprc))
+		{
+			mlsmark.scaleSize((float)1.2);
+			
+			this.ls_invalidate();
+			return true;
+		}
 		if(mlsmark.isInRect(x, y, mlsmark.mbarrc))
 		{
 			LsMarkInfo info = mlsmark.find(x,y);
@@ -1660,18 +1696,26 @@ public class PagesView extends View implements
 	}
 	void ls_onDoubleTap(float x, float y)
 	{
-		//Log.i("lsinfo", ">ls_onDoubleTap().");
-		//System.out.println(">ls_onDoubleTap().");
+		if( mlsmark.isInRect(x, y, mlsmark.mbartoprc))
+		{
+			//Log.i("lsinfo", ">ls_onDoubleTap(). 1");
+			mlsmark.scaleSize((float)0.8);
+			this.ls_invalidate();
+			return;
+		}
 		if(!mlsmark.isInRect(x, y, mlsmark.mbarrc))
 		{
+		//	Log.i("lsinfo", ">ls_onDoubleTap(). 2");
 			mlsmark.addMark(this.currentPage);
 			this.ls_invalidate();
 		}
 		else
 		{
+		//	Log.i("lsinfo", ">ls_onDoubleTap(). 3");
 			LsMarkInfo info = mlsmark.find(x,y);
 			if( info != null )
 			{
+		//		Log.i("lsinfo", ">ls_onDoubleTap(). 4");
 				mlsmark.delMark(info.mid);
 				this.ls_invalidate();
 			}
@@ -1679,9 +1723,15 @@ public class PagesView extends View implements
 	}
 	void ls_onDraw(Canvas canvas){
 		
-		// update bar;
-		//mlsmark.mbarrc.top = getHeight()/2;
+		//
+		mlsmark.mbarrc.right = mlsmark.mwid;
 		mlsmark.mbarrc.bottom = getHeight();
+		//canvas.drawRect(mlsmark.mbarrc, mlsmark.mbk);
+		
+		mlsmark.mbartoprc.set(mlsmark.mbarrc);//= mlsmark.mbarrc;
+		mlsmark.mbartoprc.right *=2;
+		mlsmark.mbartoprc.bottom = mlsmark.mmarkhei;
+		//canvas.drawRect(mlsmark.mbartoprc, mlsmark.mbk);
 		
 		mlsmark.drawMark(canvas);
 	}
