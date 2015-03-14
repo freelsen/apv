@@ -1383,7 +1383,7 @@ public class PagesView extends View implements
 		{
 			public boolean onDoubleTap(MotionEvent e) 
 			{
-				if(ls_onDoubleTap(e.getX(), e.getY())) // +ls@150310;
+				if(mlsfun.ls_onDoubleTap(e.getX(), e.getY())) // +ls@150310;
 					return true;
 				switch(doubleTapAction) {
 				case Options.DOUBLE_TAP_ZOOM_IN_OUT:
@@ -1420,7 +1420,7 @@ public class PagesView extends View implements
 			// !ls; single tap;
 			public boolean onSingleTapConfirmed(MotionEvent e) 
 			{
-				if( ls_onSingleTap(e.getX(), e.getY())) // +ls@150310;
+				if( mlsfun.ls_onSingleTap(e.getX(), e.getY())) // +ls@150310;
 					return true;
 				//final Activity activity = this.activity;
 				
@@ -1688,75 +1688,83 @@ public class PagesView extends View implements
 			canvas.drawText(text, 0, fpos, mbk);
 		}
 	};
-	LsMark mlsmark = new LsMark();
-	
-	boolean ls_onSingleTap(float x, float y)
-	{
-		//Log.i("lsinfo", ">ls_onSingleTap().");
-		//System.out.println(">ls_onSingleTap().");
-		if( mlsmark.isInRect(x, y, mlsmark.mbartoprc))
+	class LsFun{
+		public LsFun()
 		{
-			mlsmark.scaleSize((float)1.2);
 			
-			this.ls_invalidate();
-			return true;
 		}
-		if(mlsmark.isInRect(x, y, mlsmark.mbarrc))
+		boolean ls_onSingleTap(float x, float y)
 		{
-			LsMarkInfo info = mlsmark.find(x,y);
-			if( info != null )
+			//Log.i("lsinfo", ">ls_onSingleTap().");
+			//System.out.println(">ls_onSingleTap().");
+			if( mlsmark.isInRect(x, y, mlsmark.mbartoprc))
 			{
-				this.scrollToPage(info.mpage, true);
+				mlsmark.scaleSize((float)1.2);
+				
+				ls_invalidate();
+				return true;
 			}
-			return true;
-		}
-		else
-			return false;
-	}
-	boolean ls_onDoubleTap(float x, float y)
-	{
-		if( mlsmark.isInRect(x, y, mlsmark.mbartoprc))
-		{
-			//Log.i("lsinfo", ">ls_onDoubleTap(). 1");
-			mlsmark.scaleSize((float)0.8);
-			this.ls_invalidate();
-			return true;
-		}
-		if(!mlsmark.isInRect(x, y, mlsmark.mbarrc))
-		{
-		//	Log.i("lsinfo", ">ls_onDoubleTap(). 2");
-			mlsmark.addMark(this.currentPage);
-			this.ls_invalidate();
-			return false;
-		}
-		else
-		{
-		//	Log.i("lsinfo", ">ls_onDoubleTap(). 3");
-			LsMarkInfo info = mlsmark.find(x,y);
-			if( info != null )
+			if(mlsmark.isInRect(x, y, mlsmark.mbarrc))
 			{
-		//		Log.i("lsinfo", ">ls_onDoubleTap(). 4");
-				mlsmark.delMark(info.mid);
-				this.ls_invalidate();
+				LsMarkInfo info = mlsmark.find(x,y);
+				if( info != null )
+				{
+					scrollToPage(info.mpage, true);
+				}
+				return true;
 			}
-			return true;
+			else
+				return false;
 		}
-	}
-	void ls_onDraw(Canvas canvas){
+		boolean ls_onDoubleTap(float x, float y)
+		{
+			if( mlsmark.isInRect(x, y, mlsmark.mbartoprc))
+			{
+				//Log.i("lsinfo", ">ls_onDoubleTap(). 1");
+				mlsmark.scaleSize((float)0.8);
+				ls_invalidate();
+				return true;
+			}
+			if(!mlsmark.isInRect(x, y, mlsmark.mbarrc))
+			{
+			//	Log.i("lsinfo", ">ls_onDoubleTap(). 2");
+				mlsmark.addMark(currentPage);
+				ls_invalidate();
+				return false;
+			}
+			else
+			{
+			//	Log.i("lsinfo", ">ls_onDoubleTap(). 3");
+				LsMarkInfo info = mlsmark.find(x,y);
+				if( info != null )
+				{
+			//		Log.i("lsinfo", ">ls_onDoubleTap(). 4");
+					mlsmark.delMark(info.mid);
+					ls_invalidate();
+				}
+				return true;
+			}
+		}
+		void ls_onDraw(Canvas canvas){
+			
+			//
+			mlsmark.mbarrc.right = mlsmark.mwid;
+			mlsmark.mbarrc.bottom = getHeight();
+			//canvas.drawRect(mlsmark.mbarrc, mlsmark.mbk);
+			
+			mlsmark.mbartoprc.set(mlsmark.mbarrc);//= mlsmark.mbarrc;
+			mlsmark.mbartoprc.right *=2;
+			mlsmark.mbartoprc.bottom = mlsmark.mmarkhei;
+			//canvas.drawRect(mlsmark.mbartoprc, mlsmark.mbk);
+			
+			mlsmark.drawMark(canvas);
+		}
 		
-		//
-		mlsmark.mbarrc.right = mlsmark.mwid;
-		mlsmark.mbarrc.bottom = getHeight();
-		//canvas.drawRect(mlsmark.mbarrc, mlsmark.mbk);
 		
-		mlsmark.mbartoprc.set(mlsmark.mbarrc);//= mlsmark.mbarrc;
-		mlsmark.mbartoprc.right *=2;
-		mlsmark.mbartoprc.bottom = mlsmark.mmarkhei;
-		//canvas.drawRect(mlsmark.mbartoprc, mlsmark.mbk);
-		
-		mlsmark.drawMark(canvas);
 	}
 	
+	LsMark mlsmark = new LsMark();
+	LsFun mlsfun = new LsFun();
 	
 	public void onDraw(Canvas canvas) {
 		if (this.nook2) {
@@ -1765,7 +1773,7 @@ public class PagesView extends View implements
 		this.drawPages(canvas);
 		if (this.findMode) this.drawFindResults(canvas);
 		
-		ls_onDraw(canvas); // +ls@150310;
+		mlsfun.ls_onDraw(canvas); // +ls@150310;
 	}
 
 	/**
