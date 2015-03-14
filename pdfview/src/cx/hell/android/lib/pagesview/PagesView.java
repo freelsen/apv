@@ -1497,15 +1497,6 @@ public class PagesView extends View implements
 		
 	}
 	LsOnDoubleTapListener mlsdbtablistener = new LsOnDoubleTapListener();
-//	private void ls_setGestureDetector()
-//	{
-//		final OpenFileActivity openFileActivity = (OpenFileActivity)activity;
-//		final PagesView pagesView = this;
-//
-//		// !ls; double click;		
-//		gestureDetector.setOnDoubleTapListener( mlsdbtablistener );	// +ls@150314;
-//		//new LsOnDoubleTapListener());
-//	}
 
 	//=== @2013-07-24,11:40; draw operation ===
 	private void ls_postInvalidate()
@@ -1565,6 +1556,21 @@ public class PagesView extends View implements
 			initBarRect(mbarrc);
 			setLocation(1);
 		}
+		public void onFastViewStart(boolean b)
+		{
+			if( b )
+			{
+				mbk.setColor(Color.WHITE);
+			}
+			else
+			{
+				mbk.setColor(Color.BLACK);
+			}
+		}
+		public void onFastViewEnd()
+		{
+			mbk.setColor(Color.BLACK);
+		}
 		void initBarRect(Rect rc )
 		{
 			rc.left = 0;
@@ -1593,16 +1599,18 @@ public class PagesView extends View implements
 		}
 		public boolean checkBottomTap(float x, float y)
 		{
-			if( LsCom.isInRect(x, y, mbottomrc))
-			{
-				// change location;
-				int loc = (mlocation == 0 ) ? 1: 0;
-				setLocation(loc);
-				
-				return true;
-			}
-			else
-				return false;
+			return ( LsCom.isInRect(x, y, mbottomrc));
+		}
+		public void changeLocation()
+		{
+			// change location;
+			int loc = (mlocation == 0 ) ? 1: 0;
+			setLocation(loc);
+		}
+		public boolean mfastview = false;
+		public void changeFastPageView()
+		{
+			mfastview = !mfastview;
 		}
 		
 		int mcount = 0;
@@ -1803,7 +1811,11 @@ public class PagesView extends View implements
 				pos += h;
 			}	
 		}
-		
+		public void drawPageNo(Canvas canvas)
+		{
+			drawText(canvas, new RectF(mbartoprc), ((Integer)getCurrentPage()).toString()
+					+"/"+((Integer)getPageCount()).toString());
+		}
 		void drawText(Canvas canvas, RectF rcf, String text)
 		{
 			float center = rcf.top + rcf.height()/2;
@@ -1830,7 +1842,7 @@ public class PagesView extends View implements
 		float mlastx =0;
 		float mlasty = 0;
 		double mbase = Math.E;//2.7; // e;
-		boolean misfastdrag = false;
+		public boolean misfastdrag = false;
 		public boolean onDragStart(float x, float y)
 		{
 			misfastdrag = isDragArea(x,y);
@@ -1901,6 +1913,12 @@ public class PagesView extends View implements
 				ls_invalidate();
 				return true;
 			}
+			if( mlsmark.checkBottomTap(x,y))
+			{
+				mlsmark.changeLocation();
+				ls_invalidate();
+				return true;
+			}
 			if(LsCom.isInRect(x, y, mlsmark.mbarrc))
 			{
 				LsMarkInfo info = mlsmark.find(x,y);
@@ -1924,7 +1942,8 @@ public class PagesView extends View implements
 			}
 			if( mlsmark.checkBottomTap(x,y))
 			{
-				ls_invalidate();
+				mlsmark.changeFastPageView();
+				//ls_invalidate();
 				return true;
 			}
 			if(!LsCom.isInRect(x, y, mlsmark.mbarrc))
@@ -1947,16 +1966,21 @@ public class PagesView extends View implements
 				return true;
 			}
 		}
+		public boolean isFastView(){
+			return mlsmark.mfastview;
+		}
 		public void ls_onDraw(Canvas canvas){
-			
-			mlsmark.updateMarkbar();
-			
+			mlsmark.updateMarkbar();			
+			mlsmark.drawPageNo(canvas);
 			mlsmark.drawMark(canvas);
 		}
 		
 		public boolean onDragStart(float x, float y)
 		{
-			return mlsdrag.onDragStart(x, y);
+			boolean b = mlsdrag.onDragStart(x, y);
+			if(isFastView())
+				mlsmark.onFastViewStart(true);
+			return b;
 		}
 		public boolean onDragging(float x, float y)
 		{
@@ -1964,6 +1988,8 @@ public class PagesView extends View implements
 		}
 		public boolean onDragEnd(float x, float y)
 		{
+			if( isFastView())
+				mlsmark.onFastViewEnd();
 			return mlsdrag.onDragEnd(x,y);
 		}
 	}
@@ -1971,12 +1997,14 @@ public class PagesView extends View implements
 	LsFun mlsfun = new LsFun();
 	
 	public void onDraw(Canvas canvas) {
-		if (this.nook2) {
-			N2EpdController.setGL16Mode();
+		if(!mlsfun.isFastView())
+		{
+			if (this.nook2) {
+				N2EpdController.setGL16Mode();
+			}
+			this.drawPages(canvas);
+			if (this.findMode) this.drawFindResults(canvas);
 		}
-		this.drawPages(canvas);
-		if (this.findMode) this.drawFindResults(canvas);
-		
 		mlsfun.ls_onDraw(canvas); // +ls@150310;
 	}
 
