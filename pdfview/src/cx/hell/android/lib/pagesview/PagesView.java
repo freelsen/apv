@@ -1383,7 +1383,8 @@ public class PagesView extends View implements
 		{
 			public boolean onDoubleTap(MotionEvent e) 
 			{
-				ls_onDoubleTap(e.getX(), e.getY()); // +ls@150310;
+				if(ls_onDoubleTap(e.getX(), e.getY())) // +ls@150310;
+					return true;
 				switch(doubleTapAction) {
 				case Options.DOUBLE_TAP_ZOOM_IN_OUT:
 					if (zoomToRestore != 0) {
@@ -1443,38 +1444,56 @@ public class PagesView extends View implements
 						return false;
 				}
 				
-				// +ls; 2013-02-06; 22:55;
-				// <ls; 2013-07-14; 9:22;
-				
-				// ls bar tap detection;
-				Rect leftbottomcon = new Rect();
-				leftbottomcon.set(width/3, 0, width*2/3, 100); 		// 2013-07-14; 0, height - 100, 100, height);
-				if( leftbottomcon.contains((int)e.getX(), (int)e.getY()))
-				{
-					openFileActivity.ls_onShowHideZoom();
+				// +ls; 2013-02-06; 22:55;// <ls; 2013-07-14; 9:22;
+				if( checkAreaBar((int)e.getX(), (int)e.getY()))
 					return true;
-				}
 				
-			// top tap detection;
-				Rect upleft 	= new Rect();
-				//Rect upright 	= new Rect();
-				// left, top, right, bottom;
-				upleft.set(0, 0, width/3, height/2 ); 				// 2013-07-14; height / 4, 100, height / 2);
-				//130921;upright.set(width*2/3, 0, width, height/2);			// 2013-07-14;width - 100, height/4, width, height/2);
-				if( upleft.contains((int)e.getX(), (int)e.getY()) )//  ||  upright.contains((int)e.getX(), (int)e.getY()) )
-					return doAction(actions.getAction(Actions.TOP_TAP));
+				if( checkAreaUpdown((int)e.getX(), (int)e.getY()))
+					return true;
 				
-			// bottom tap detection;
-				Rect downleft 	= new Rect();
-				//Rect downright 	= new Rect();
-				downleft.set(0, height/2, width/3, height); 		// 2013-07-14; height/2, 100, height*3/4);
-				//downright.set(width*2/3, height/2, width, height); 	// 2013-07-14; width-100, height/2, width, height*3/4);
-				if( downleft.contains((int)e.getX(), (int)e.getY()))// || downright.contains((int)e.getX(), (int)e.getY()) )
-					return doAction(actions.getAction(Actions.BOTTOM_TAP));
 				return false;
 				//return doAction(actions.getAction(e.getY() < height / 2 ? Actions.TOP_TAP : Actions.BOTTOM_TAP));
 			// -ls;
 				
+			}
+			boolean checkAreaUpdown(int x, int y)
+			{
+				// top tap detection;
+				Rect rc 	= new Rect();
+				//130921;upright.set(width*2/3, 0, width, height/2);			// 2013-07-14;width - 100, height/4, width, height/2);
+				//rc.set(0, 0, width/3, height/2 ); 				// 2013-07-14; height / 4, 100, height / 2);
+				rc.set(0, 0, width, height/2 ); //+ls@150214;
+				if( rc.contains(x,y) )//  ||  upright.contains((int)e.getX(), (int)e.getY()) )
+				{
+					doAction(actions.getAction(Actions.TOP_TAP));
+					return true;
+				}
+				
+				// bottom tap detection;
+				rc 	= new Rect();
+				//downleft.set(0, height/2, width/3, height); 		// 2013-07-14; height/2, 100, height*3/4);
+				//downright.set(width*2/3, height/2, width, height); 	// 2013-07-14; width-100, height/2, width, height*3/4);
+				rc.set(0, height/2, width, height); // +ls@150214;
+				if( rc.contains(x,y))// || downright.contains((int)e.getX(), (int)e.getY()) )
+				{
+					doAction(actions.getAction(Actions.BOTTOM_TAP));
+					return true;
+				}
+				
+				return false;
+			}
+			boolean checkAreaBar(int x, int y)
+			{
+				// ls bar tap detection;
+				Rect leftbottomcon = new Rect();
+				leftbottomcon.set(width/3, 0, width*2/3, 100); 		// 2013-07-14; 0, height - 100, 100, height);
+				if( leftbottomcon.contains(x,y))//(int)e.getX(), (int)e.getY()))
+				{
+					openFileActivity.ls_onShowHideZoom();
+					return true;
+				}
+				else
+					return false;
 			}
 		});
 	}
@@ -1694,20 +1713,21 @@ public class PagesView extends View implements
 		else
 			return false;
 	}
-	void ls_onDoubleTap(float x, float y)
+	boolean ls_onDoubleTap(float x, float y)
 	{
 		if( mlsmark.isInRect(x, y, mlsmark.mbartoprc))
 		{
 			//Log.i("lsinfo", ">ls_onDoubleTap(). 1");
 			mlsmark.scaleSize((float)0.8);
 			this.ls_invalidate();
-			return;
+			return true;
 		}
 		if(!mlsmark.isInRect(x, y, mlsmark.mbarrc))
 		{
 		//	Log.i("lsinfo", ">ls_onDoubleTap(). 2");
 			mlsmark.addMark(this.currentPage);
 			this.ls_invalidate();
+			return false;
 		}
 		else
 		{
@@ -1719,6 +1739,7 @@ public class PagesView extends View implements
 				mlsmark.delMark(info.mid);
 				this.ls_invalidate();
 			}
+			return true;
 		}
 	}
 	void ls_onDraw(Canvas canvas){
