@@ -1,12 +1,15 @@
 package cx.hell.android.lib.pagesview;
 
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -14,8 +17,12 @@ import android.graphics.Color;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Paint;
+import android.graphics.Paint.Align;
+import android.graphics.Paint.FontMetrics;
+import android.graphics.Paint.Style;
 import android.graphics.Point;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -225,10 +232,7 @@ public class PagesView extends View implements
 		this.scroller = null; // new Scroller(activity);
 
 		ls_createGestureDetector(); //@2013-07-24;		
-		//	final OpenFileActivity openFileActivity = (OpenFileActivity)activity;
-		//final PagesView pagesView = this;		
-		ls_setGestureDetector(); //@2013-07-24;
-		
+		//ls_setGestureDetector(); //@2013-07-24;
 	}
 	
 	// set start book mark(); @2013-07-24;
@@ -443,6 +447,8 @@ public class PagesView extends View implements
 				maxExcursionY = 0;
 				maxExcursionX = 0;
 				scroller = null;
+				
+				mlsfun.onDragStart(event.getX(),event.getY());	// +ls@150314;
 			}
 	        else if (event.getAction() == MotionEvent.ACTION_POINTER_2_DOWN
 	        		&& AndroidReflections.getMotionEventPointerCount(event) >= 2) {
@@ -477,6 +483,9 @@ public class PagesView extends View implements
 					if( lockedHoriz && unlocksHoriz(event))	// +ls @2013-07-24;
 						lockedHoriz = false;
 					
+					if( mlsfun.onDragging(event.getX(),event.getY()))	// +ls@150314;
+						return true;
+					
 					float dx = event.getX() - lastX;
 					float dy = event.getY() - lastY;
 					
@@ -493,6 +502,8 @@ public class PagesView extends View implements
 					{
 						dx = 0;
 						//dy = 0; // 2013-09-03;
+						if( Math.abs(dy)<10)
+							return false;
 					}
 					//if( lockedHoriz)
 					//	dy = 0;
@@ -517,6 +528,7 @@ public class PagesView extends View implements
 					this.mtZoomActive = false;
 					zoom(this.mtZoomValue);
 				}
+				mlsfun.onDragEnd(event.getX(),event.getY());	// +ls@150314;
 			}						
 		}
 		return true;
@@ -1365,110 +1377,128 @@ public class PagesView extends View implements
 						return false;
 					}
 		});
+		gestureDetector.setOnDoubleTapListener( mlsdbtablistener );	// +ls@150314;
 	}
-	private void ls_setGestureDetector()
+	class LsOnDoubleTapListener implements OnDoubleTapListener
 	{
-		final OpenFileActivity openFileActivity = (OpenFileActivity)activity;
-		final PagesView pagesView = this;
 
-		// !ls; double click;		
-		gestureDetector.setOnDoubleTapListener(
-		new OnDoubleTapListener() 
+		public boolean onDoubleTap(MotionEvent e) 
 		{
-			public boolean onDoubleTap(MotionEvent e) 
-			{
-				switch(doubleTapAction) {
-				case Options.DOUBLE_TAP_ZOOM_IN_OUT:
-					if (zoomToRestore != 0) {
-						left = leftToRestore;
-						top = top * zoomToRestore / zoomLevel;
-						zoomLevel = zoomToRestore;
-						ls_invalidate();
-						zoomToRestore = 0;
-					}
-					else {
-						int oldLeft = left;
-						int oldZoom = zoomLevel;
-						left += e.getX() - width/2;
-						top += e.getY() - height/2;
-						zoom(2f);
-						zoomToRestore = oldZoom;
-						leftToRestore = oldLeft;
-					}
-					return true;
-				case Options.DOUBLE_TAP_ZOOM:
+			if(mlsfun.ls_onDoubleTap(e.getX(), e.getY())) // +ls@150310;
+				return true;
+			switch(doubleTapAction) {
+			case Options.DOUBLE_TAP_ZOOM_IN_OUT:
+				if (zoomToRestore != 0) {
+					left = leftToRestore;
+					top = top * zoomToRestore / zoomLevel;
+					zoomLevel = zoomToRestore;
+					ls_invalidate();
+					zoomToRestore = 0;
+				}
+				else {
+					int oldLeft = left;
+					int oldZoom = zoomLevel;
 					left += e.getX() - width/2;
 					top += e.getY() - height/2;
 					zoom(2f);
-					return true;
-				default:
-					return false;
+					zoomToRestore = oldZoom;
+					leftToRestore = oldLeft;
 				}
+				return true;
+			case Options.DOUBLE_TAP_ZOOM:
+				left += e.getX() - width/2;
+				top += e.getY() - height/2;
+				zoom(2f);
+				return true;
+			default:
+				return false;
 			}
+		}
 
-			public boolean onDoubleTapEvent(MotionEvent e) {
-				return false;
+		public boolean onDoubleTapEvent(MotionEvent e) {
+			return false;
+		}
+		// !ls; single tap;
+		public boolean onSingleTapConfirmed(MotionEvent e) 
+		{
+			if( mlsfun.ls_onSingleTap(e.getX(), e.getY())) // +ls@150310;
+				return true;
+			//final Activity activity = this.activity;
+			
+			if (mtDebounce + 600 > SystemClock.uptimeMillis()) 
+				return false;				
+			
+		//	if (!showZoomOnScroll) {
+		//		openFileActivity.showZoom();
+		//		ls_invalidate(); // @2013-07-24;pagesView.invalidate();
+		//	}
+			
+			// check if in the zoomlayout area; if true, then ignore;
+			if (zoomLayout != null) {
+				Rect r = new Rect();
+				
+				zoomLayout.getDrawingRect(r);
+				
+				r.set(r.left - 5, r.top - 5, r.right + 5, r.bottom + 5);
+				
+				if (r.contains((int)e.getX(), (int)e.getY()))
+					return false;
 			}
-			// !ls; single tap;
-			public boolean onSingleTapConfirmed(MotionEvent e) 
-			{
-				//final Activity activity = this.activity;
-				
-    			if (mtDebounce + 600 > SystemClock.uptimeMillis()) 
-    				return false;				
-				
-			//	if (!showZoomOnScroll) {
-			//		openFileActivity.showZoom();
-			//		ls_invalidate(); // @2013-07-24;pagesView.invalidate();
-			//	}
-				
-				// check if in the zoomlayout area; if true, then ignore;
-				if (zoomLayout != null) {
-					Rect r = new Rect();
-					
-					zoomLayout.getDrawingRect(r);
-					
-					r.set(r.left - 5, r.top - 5, r.right + 5, r.bottom + 5);
-					
-					if (r.contains((int)e.getX(), (int)e.getY()))
-						return false;
-				}
-				
-				// +ls; 2013-02-06; 22:55;
-				// <ls; 2013-07-14; 9:22;
-				
-				// ls bar tap detection;
-				Rect leftbottomcon = new Rect();
-				leftbottomcon.set(width/3, 0, width*2/3, 100); 		// 2013-07-14; 0, height - 100, 100, height);
-				if( leftbottomcon.contains((int)e.getX(), (int)e.getY()))
-				{
-					openFileActivity.ls_onShowHideZoom();
-					return true;
-				}
-				
+			
+			// +ls; 2013-02-06; 22:55;// <ls; 2013-07-14; 9:22;
+			if( checkAreaBar((int)e.getX(), (int)e.getY()))
+				return true;
+			
+			if( checkAreaUpdown((int)e.getX(), (int)e.getY()))
+				return true;
+			
+			return false;
+			//return doAction(actions.getAction(e.getY() < height / 2 ? Actions.TOP_TAP : Actions.BOTTOM_TAP));
+		// -ls;
+			
+		}
+		boolean checkAreaUpdown(int x, int y)
+		{
 			// top tap detection;
-				Rect upleft 	= new Rect();
-				//Rect upright 	= new Rect();
-				// left, top, right, bottom;
-				upleft.set(0, 0, width/3, height/2 ); 				// 2013-07-14; height / 4, 100, height / 2);
-				//130921;upright.set(width*2/3, 0, width, height/2);			// 2013-07-14;width - 100, height/4, width, height/2);
-				if( upleft.contains((int)e.getX(), (int)e.getY()) )//  ||  upright.contains((int)e.getX(), (int)e.getY()) )
-					return doAction(actions.getAction(Actions.TOP_TAP));
-				
-			// bottom tap detection;
-				Rect downleft 	= new Rect();
-				//Rect downright 	= new Rect();
-				downleft.set(0, height/2, width/3, height); 		// 2013-07-14; height/2, 100, height*3/4);
-				//downright.set(width*2/3, height/2, width, height); 	// 2013-07-14; width-100, height/2, width, height*3/4);
-				if( downleft.contains((int)e.getX(), (int)e.getY()))// || downright.contains((int)e.getX(), (int)e.getY()) )
-					return doAction(actions.getAction(Actions.BOTTOM_TAP));
-				return false;
-				//return doAction(actions.getAction(e.getY() < height / 2 ? Actions.TOP_TAP : Actions.BOTTOM_TAP));
-			// -ls;
-				
+			Rect rc 	= new Rect();
+			//130921;upright.set(width*2/3, 0, width, height/2);			// 2013-07-14;width - 100, height/4, width, height/2);
+			//rc.set(0, 0, width/3, height/2 ); 				// 2013-07-14; height / 4, 100, height / 2);
+			rc.set(0, 0, width, height/2 ); //+ls@150214;
+			if( rc.contains(x,y) )//  ||  upright.contains((int)e.getX(), (int)e.getY()) )
+			{
+				doAction(actions.getAction(Actions.TOP_TAP));
+				return true;
 			}
-		});
+			
+			// bottom tap detection;
+			rc 	= new Rect();
+			//downleft.set(0, height/2, width/3, height); 		// 2013-07-14; height/2, 100, height*3/4);
+			//downright.set(width*2/3, height/2, width, height); 	// 2013-07-14; width-100, height/2, width, height*3/4);
+			rc.set(0, height/2, width, height); // +ls@150214;
+			if( rc.contains(x,y))// || downright.contains((int)e.getX(), (int)e.getY()) )
+			{
+				doAction(actions.getAction(Actions.BOTTOM_TAP));
+				return true;
+			}
+			
+			return false;
+		}
+		boolean checkAreaBar(int x, int y)
+		{
+			// ls bar tap detection;
+			Rect leftbottomcon = new Rect();
+			leftbottomcon.set(width/3, 0, width*2/3, 100); 		// 2013-07-14; 0, height - 100, 100, height);
+			if( leftbottomcon.contains(x,y))//(int)e.getX(), (int)e.getY()))
+			{
+				((OpenFileActivity)activity).ls_onShowHideZoom();
+				return true;
+			}
+			else
+				return false;
+		}
+		
 	}
+	LsOnDoubleTapListener mlsdbtablistener = new LsOnDoubleTapListener();
 
 	//=== @2013-07-24,11:40; draw operation ===
 	private void ls_postInvalidate()
@@ -1481,12 +1511,503 @@ public class PagesView extends View implements
 		this.isdraw = true;
 		invalidate();
 	}
-	public void onDraw(Canvas canvas) {
-		if (this.nook2) {
-			N2EpdController.setGL16Mode();
+	// +ls@150314;
+	static class LsCom {
+		public static boolean isInRect(float x, float y, Rect rc)
+		{
+			return ((x>=rc.left) && (x<=rc.right) 
+					&& (y>=rc.top) && (y<=rc.bottom));
 		}
-		this.drawPages(canvas);
-		if (this.findMode) this.drawFindResults(canvas);
+		public static boolean isInRectF(float x, float y, RectF rcf)
+		{
+			return ((x>=rcf.left) && (x<=rcf.right) 
+					&& (y>=rcf.top) && (y<=rcf.bottom));
+		}
+		
+	}
+	// +ls@150310;
+	class LsMarkInfo{
+		LsMarkInfo() {
+			mid = 0;
+		}
+		int mid;
+		int mpage;
+		int mpos;
+		Rect mrc;
+		RectF mrcf;
+	};
+	class LsMark{
+		float mfontsizesp = 12;
+		int mfontsizepx = 12;
+		int mlocation = 0; // 0=left; 1=right;;
+		
+		int mminnum = 10;
+		
+		//int mmarknum = 0;
+		public Paint mbk = new Paint();
+		public Rect mbarrc = new Rect();
+		public Rect mbartoprc = new Rect();
+		Rect mbottomrc = new Rect();
+		
+		LsMark()
+		{
+			mbk.setColor(Color.BLACK);
+			mbk.setStyle(Style.STROKE);
+			scaleSize(1);
+			
+			initBarRect(mbarrc);
+			setLocation(1);
+		}
+		public void onFastViewStart(boolean b)
+		{
+			if( b )
+			{
+				mbk.setColor(Color.WHITE);
+			}
+			else
+			{
+				mbk.setColor(Color.BLACK);
+			}
+		}
+		public void onFastViewEnd()
+		{
+			mbk.setColor(Color.BLACK);
+		}
+		void initBarRect(Rect rc )
+		{
+			rc.left = 0;
+			rc.right = mwid;
+			rc.top = 0;
+			rc.bottom = 0;
+		}
+		void initMarkRect(RectF rcf)
+		{
+			rcf.left = 0;
+			rcf.right = mwid;
+			rcf.top = 0;
+			rcf.bottom = 0;
+		}
+		void setLocation(int loc)
+		{
+			mlocation = loc;
+			if( mlocation == 0)
+			{
+				mbk.setTextAlign(Align.LEFT);
+			}
+			else
+			{
+				mbk.setTextAlign(Align.RIGHT);
+			}
+		}
+		public boolean checkBottomTap(float x, float y)
+		{
+			return ( LsCom.isInRect(x, y, mbottomrc));
+		}
+		public void changeLocation()
+		{
+			// change location;
+			int loc = (mlocation == 0 ) ? 1: 0;
+			setLocation(loc);
+		}
+		public boolean mfastview = false;
+		public void changeFastPageView()
+		{
+			mfastview = !mfastview;
+		}
+		
+		int mcount = 0;
+
+		TreeMap<Integer, LsMarkInfo> mmarks = new TreeMap<Integer, LsMarkInfo>(
+				new Comparator<Integer>() {					 
+					public int compare(Integer o1, Integer o2) {
+						return o1.compareTo(o2);
+					}
+				}
+				);
+		public LsMarkInfo find(int page)
+		{
+			LsMarkInfo info= null;
+			Integer i=0;
+			Iterator it = mmarks.keySet().iterator();
+			while(it.hasNext()){
+				i = (Integer) it.next();
+				info = mmarks.get(i);
+				if( info.mpage == page )
+					return info;
+			}
+			return null;
+		}
+		public LsMarkInfo find(float x, float y)
+		{
+			LsMarkInfo info= null;
+			RectF rc;
+			Integer i=0;
+			Iterator it = mmarks.keySet().iterator();
+			while(it.hasNext()){
+				i = (Integer) it.next();
+				info = mmarks.get(i);
+				if( LsCom.isInRectF(x,y,info.mrcf))
+					return info;
+			}
+			return null;
+		}
+		
+		public void addMark(int page)
+		{
+			
+			LsMarkInfo info = find(page);
+			if( info !=null ) // already exist;
+				return;
+			
+			info = new LsMarkInfo();
+			info.mid = page;//mcount;
+			info.mpage = page;
+			RectF rcf = new RectF();
+			initMarkRect(rcf);
+			info.mrcf = rcf;
+			
+			//mmarks.put(mcount++, info);
+			mmarks.put(page, info);
+		}
+		public void delMark(Integer key)
+		{
+			mmarks.remove(key);
+		}
+		
+		public int mwid = 80;
+		public int mmarkhei = 80;
+		public void setMarkSize()
+		{
+			mmarkhei = mfontsizepx * 2;
+			mwid = mfontsizepx * 2;
+		}
+		
+		int sp2px(float sp)
+		{
+			final float scale = getResources().getDisplayMetrics().scaledDensity;
+			//final int dpi = getResources().getDisplayMetrics().densityDpi;
+			//Log.i(">ls: scale sp=",((Float)scale).toString());
+			return (int)(sp * scale);// + 0.5f);
+		}
+		public int dip2px(float dip){
+			
+			final float scale = getResources().getDisplayMetrics().density;
+			return (int)(dip * scale + 0.5f);
+		}
+		public int px2dip(float px){
+			final float scale =getResources().getDisplayMetrics().density;
+			return (int)(px / scale + 0.5f);
+		}
+		void setFontSize( float idx)
+		{
+			mfontsizesp = idx*mfontsizesp;
+			mfontsizepx = sp2px(mfontsizesp);
+			mbk.setTextSize(mfontsizepx);
+		}
+		public void scaleSize(float idx)
+		{
+			setFontSize(idx);
+			setMarkSize();
+		}
+		void setBarPos()
+		{
+			if(mlocation == 0) // lseft;
+			{
+				mbarrc.left = 0;
+				mbarrc.right = mbarrc.left+mwid;
+			}
+			else if ( mlocation == 1) // right;
+			{
+				mbarrc.right = getWidth();
+				mbarrc.left = mbarrc.right - mwid;
+			}
+			mbarrc.bottom = getHeight();
+
+		}		
+		void setToptapPos()
+		{
+			mbartoprc.set(mbarrc);//= mlsmark.mbarrc;
+			if( mlocation == 0 ) // left;
+			{
+				mbartoprc.right += mbarrc.width();//*=2;		
+			}
+			else if( mlocation == 1) // right;
+			{
+				//mbartoprc.right -= mbarrc.width();
+				mbartoprc.left -= mbarrc.width();
+			}
+			mbartoprc.bottom = mmarkhei;
+		}
+		void setBottomtapPos()
+		{
+			mbottomrc.set(mbarrc);//= mlsmark.mbarrc;
+			if( mlocation == 0 ) // left;
+			{
+				mbottomrc.right += mbarrc.width();//*=2;				
+			}
+			else if( mlocation == 1) // right;
+			{
+				mbottomrc.left -= mbarrc.width();
+			}
+			mbottomrc.top = mbottomrc.bottom - mmarkhei;
+		}
+		void setMarkPos(RectF rcf, int top, float hei)
+		{
+			rcf.top = top;
+			rcf.bottom = rcf.top + hei;//fonth;//3*mmarkhei;//h;
+			
+			rcf.left = mbarrc.left;
+			rcf.right = mbarrc.right;	
+		}
+		
+		public void updateMarkbar()
+		{
+			setBarPos();
+			//canvas.drawRect(mbarrc, mbk);		
+			setToptapPos();	
+			setBottomtapPos();
+		}
+		int calCenterTop(int num, int h)
+		{
+			if(num >= mminnum )
+				return h;
+			else
+			{
+				return h + (mminnum-num)/2*h;
+			}
+		}
+		public void drawMark(Canvas canvas) {
+			
+			if( mmarks.isEmpty() )
+				return;
+			// 
+//			canvas.drawRect(mbarrc, mbk);
+//			Log.i("ls>", "barpos="+ (Integer)mbarrc.left+"," +(Integer)mbarrc.right+","
+//					+(Integer)mbarrc.top+","+(Integer)mbarrc.bottom);
+//			canvas.drawRect(mbartoprc, mbk);
+			//canvas.drawRect(mbottomrc, mbk);
+			
+			int cnt = mmarks.size();
+			if( cnt < mminnum )
+				cnt = mminnum;
+			int h = (int)((double)(mbarrc.bottom)/(double)(cnt+2));
+			float fonth = (float) (mmarkhei);//*1.5);
+			if( fonth > h)
+				fonth = h;
+			
+			LsMarkInfo info= null;
+			Integer i=0;
+			Iterator it = mmarks.keySet().iterator();
+			//int pos = h;//mmarkhei*2;//h;
+			int pos = calCenterTop(mmarks.size(), h);
+			while(it.hasNext()){
+				i = (Integer) it.next();
+				info = mmarks.get(i);
+				//System.out.println(">ls_drawMark()" + info.mpage);
+				setMarkPos( info.mrcf, pos, fonth);
+				//canvas.drawRect(info.mrcf, mbk);
+				//canvas.drawOval(info.mrcf, mbk);
+								
+				drawText(canvas, info.mrcf, ((Integer)(info.mpage)).toString());
+				
+				pos += h;
+			}	
+		}
+		public void drawPageNo(Canvas canvas)
+		{
+			drawText(canvas, new RectF(mbartoprc), ((Integer)getCurrentPage()).toString()
+					+"/"+((Integer)getPageCount()).toString());
+		}
+		void drawText(Canvas canvas, RectF rcf, String text)
+		{
+			float center = rcf.top + rcf.height()/2;
+			FontMetrics fm = mbk.getFontMetrics();	
+			float fh = fm.bottom - fm.top;
+			int fpos = (int) ( center - fh/2 - fm.top);
+			if( mlocation == 0) 	// left;
+				canvas.drawText(text, rcf.left, fpos, mbk);
+			else if( mlocation==1)	// align right;
+				canvas.drawText(text, rcf.right, fpos, mbk);
+		}
+	};
+	class LsDrag{
+		RectF mdragarea = new RectF();
+		
+		public LsDrag(){
+			mdragarea.left = 0;
+			mdragarea.right = width/2;
+			mdragarea.top = 0;
+			mdragarea.bottom = height;
+		}
+		int mtmgapmin = 10;
+		int mlasttm = 0;
+		float mlastx =0;
+		float mlasty = 0;
+		double mbase = Math.E;//2.7; // e;
+		public boolean misfastdrag = false;
+		public boolean onDragStart(float x, float y)
+		{
+			misfastdrag = isDragArea(x,y);
+			
+			mlasttm = (int) lastControlsUseMillis;		// +ls@150103;
+			mlastx = x;
+			mlasty = y;
+			return false;
+		}
+		boolean isDragArea(float x, float y)
+		{
+			mdragarea.right = width/2;
+			mdragarea.bottom = height;
+			return LsCom.isInRectF(x, y, mdragarea);
+		}
+		public boolean onDragging(float x, float y)
+		{
+			// check area;
+			if(!misfastdrag)
+				return false;
+			// check time interval;
+			int tm = (int)lastControlsUseMillis;
+			int dt = tm -mlasttm;
+			if( dt < mtmgapmin )
+				return false;
+			else
+				mlasttm = tm;
+			// cal distance;
+			float dx = x - mlastx;
+			float dy = y - mlasty;
+			mlastx = x;
+			mlasty = y;
+
+			double dis = 0;
+			if( dy >=0 )
+				dis = -Math.pow(dy, mbase);
+			else
+				dis = Math.pow(-dy, mbase);
+			// do scroll;
+			ls_doScroll(0,(int) dis);
+			
+			return true;
+		}
+		public boolean onDragEnd(float x, float y)
+		{
+			mlasttm = 0;
+			mlastx = 0;
+			mlasty = 0;
+			misfastdrag = false;
+			return false;
+		} 
+	}
+	class LsFun{		
+		LsMark mlsmark = new LsMark();
+		LsDrag mlsdrag = new LsDrag();
+		public LsFun()
+		{
+			
+		}
+		public boolean ls_onSingleTap(float x, float y)
+		{
+			//Log.i("lsinfo", ">ls_onSingleTap().");
+			//System.out.println(">ls_onSingleTap().");
+			if( LsCom.isInRect(x, y, mlsmark.mbartoprc))
+			{
+				mlsmark.scaleSize((float)1.2);
+				
+				ls_invalidate();
+				return true;
+			}
+			if( mlsmark.checkBottomTap(x,y))
+			{
+				mlsmark.changeLocation();
+				ls_invalidate();
+				return true;
+			}
+			if(LsCom.isInRect(x, y, mlsmark.mbarrc))
+			{
+				LsMarkInfo info = mlsmark.find(x,y);
+				if( info != null )
+				{
+					scrollToPage(info.mpage, true);
+				}
+				return true;
+			}
+			else
+				return false;
+		}
+		public boolean ls_onDoubleTap(float x, float y)
+		{
+			if( LsCom.isInRect(x, y, mlsmark.mbartoprc))
+			{
+				//Log.i("lsinfo", ">ls_onDoubleTap(). 1");
+				mlsmark.scaleSize((float)0.8);
+				ls_invalidate();
+				return true;
+			}
+			if( mlsmark.checkBottomTap(x,y))
+			{
+				mlsmark.changeFastPageView();
+				//ls_invalidate();
+				return true;
+			}
+			if(!LsCom.isInRect(x, y, mlsmark.mbarrc))
+			{
+			//	Log.i("lsinfo", ">ls_onDoubleTap(). 2");
+				mlsmark.addMark(currentPage);
+				ls_invalidate();
+				return false;
+			}
+			else
+			{
+			//	Log.i("lsinfo", ">ls_onDoubleTap(). 3");
+				LsMarkInfo info = mlsmark.find(x,y);
+				if( info != null )
+				{
+			//		Log.i("lsinfo", ">ls_onDoubleTap(). 4");
+					mlsmark.delMark(info.mid);
+					ls_invalidate();
+				}
+				return true;
+			}
+		}
+		public boolean isFastView(){
+			return mlsmark.mfastview;
+		}
+		public void ls_onDraw(Canvas canvas){
+			mlsmark.updateMarkbar();			
+			mlsmark.drawPageNo(canvas);
+			mlsmark.drawMark(canvas);
+		}
+		
+		public boolean onDragStart(float x, float y)
+		{
+			boolean b = mlsdrag.onDragStart(x, y);
+			if(isFastView())
+				mlsmark.onFastViewStart(true);
+			return b;
+		}
+		public boolean onDragging(float x, float y)
+		{
+			return mlsdrag.onDragging(x, y);
+		}
+		public boolean onDragEnd(float x, float y)
+		{
+			if( isFastView())
+				mlsmark.onFastViewEnd();
+			return mlsdrag.onDragEnd(x,y);
+		}
+	}
+
+	LsFun mlsfun = new LsFun();
+	
+	public void onDraw(Canvas canvas) {
+		if(!mlsfun.isFastView())
+		{
+			if (this.nook2) {
+				N2EpdController.setGL16Mode();
+			}
+			this.drawPages(canvas);
+			if (this.findMode) this.drawFindResults(canvas);
+		}
+		mlsfun.ls_onDraw(canvas); // +ls@150310;
 	}
 
 	/**
