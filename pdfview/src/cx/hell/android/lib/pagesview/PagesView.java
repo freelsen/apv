@@ -502,6 +502,8 @@ public class PagesView extends View implements
 					{
 						dx = 0;
 						//dy = 0; // 2013-09-03;
+						if( Math.abs(dy)<10)
+							return false;
 					}
 					//if( lockedHoriz)
 					//	dy = 0;
